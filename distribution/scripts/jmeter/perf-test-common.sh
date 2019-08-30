@@ -66,7 +66,7 @@ script_dir=$(dirname "$0")
 declare -a heap_sizes_array
 # Concurrent users (will be divided among JMeter servers)
 declare -a concurrent_users_array
-# Message Sizes
+# # Message Sizes
 declare -a message_sizes_array
 # Common backend sleep times (in milliseconds).
 declare -a backend_sleep_times_array
@@ -204,6 +204,15 @@ while getopts "u:b:s:m:d:w:n:j:k:l:i:e:tp:h" opts; do
         ;;
     esac
 done
+
+# [[ $A_MY_ARRAY =~ ^declare ]] && eval $A_MY_ARRAY
+# [[ $B_MY_ARRAY =~ ^declare ]] && eval $B_MY_ARRAY
+
+#   for i in "${!concurrent_users_array[@]}"
+#     do
+#         echo "key :" $i
+#         echo "value:" ${concurrent_users_array[$i]}
+#     done
 
 # Validate options
 number_regex='^[0-9]+$'

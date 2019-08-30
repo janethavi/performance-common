@@ -26,15 +26,17 @@ script_dir=$(realpath $script_dir)
 
 # Check commands
 check_command bc
-check_command aws
+check_command python
 check_command unzip
 check_command zip
 check_command jq
-check_command python
+check_command aws
 check_command ts
 
 script_start_time=$(date +%s)
 user_email=""
+user_access_key_id=""
+user_secret_key=""
 performance_scripts_distribution=""
 default_results_dir="results-$(date +%Y%m%d%H%M%S)"
 results_dir="$default_results_dir"
@@ -47,7 +49,7 @@ key_name=""
 s3_bucket_name=""
 s3_bucket_region=""
 jmeter_client_ec2_instance_type=""
-jmeter_server_ec2_instance_type=""
+# jmeter_server_ec2_instance_type=""
 netty_ec2_instance_type=""
 # GCViewer Jar file to analyze GC logs
 gcviewer_jar_path=""
@@ -74,6 +76,8 @@ function usage() {
     echo "   [-h] -- [run_performance_tests_options]"
     echo ""
     echo "-u: Email of the user running this script."
+    echo "-y: Access Key ID of the user Running this script"
+    echo "-m: Secret access key"
     echo "-f: Distribution containing the scripts to run performance tests."
     echo "-d: The results directory. Default value is a directory with current time. For example, $default_results_dir."
     echo "-k: Amazon EC2 Key File. Amazon EC2 Key Name must match with this file name."
@@ -99,72 +103,98 @@ function usage() {
     echo ""
 }
 
-while getopts "u:f:d:k:n:j:o:g:s:b:r:J:S:N:t:p:w:h" opts; do
-    case $opts in
-    u)
-        user_email=${OPTARG}
-        ;;
-    f)
-        performance_scripts_distribution=${OPTARG}
-        ;;
-    d)
-        results_dir=${OPTARG}
-        ;;
-    k)
-        key_file=${OPTARG}
-        ;;
-    n)
-        key_name=${OPTARG}
-        ;;
-    j)
-        jmeter_distribution=${OPTARG}
-        ;;
-    o)
-        oracle_jdk_distribution=${OPTARG}
-        ;;
-    g)
-        gcviewer_jar_path=${OPTARG}
-        ;;
-    s)
-        stack_name_prefix=${OPTARG}
-        ;;
-    b)
-        s3_bucket_name=${OPTARG}
-        ;;
-    r)
-        s3_bucket_region=${OPTARG}
-        ;;
-    J)
-        jmeter_client_ec2_instance_type=${OPTARG}
-        ;;
-    S)
-        jmeter_server_ec2_instance_type=${OPTARG}
-        ;;
-    N)
-        netty_ec2_instance_type=${OPTARG}
-        ;;
-    t)
-        number_of_stacks=${OPTARG}
-        ;;
-    p)
-        parallel_parameter_option=${OPTARG}
-        ;;
-    w)
-        minimum_stack_creation_wait_time=${OPTARG}
-        ;;
-    h)
-        usage
-        exit 0
-        ;;
-    \?)
-        usage
-        exit 1
-        ;;
-    esac
-done
-shift "$((OPTIND - 1))"
+# while getopts "u:y:m:d:n:s:b:r:J:N:t:p:w:h" opts; do
+#     case $opts in
+#     u)
+#         user_email=${OPTARG}
+#         ;;
+#     y)
+#         user_access_key_id=${OPTARG}
+#         ;;
+#     m)
+#         user_secret_key=${OPTARG}
+#         ;;
+#     # f)
+#     #     performance_scripts_distribution=${OPTARG}
+#     #     ;;
+#     d)
+#         results_dir=${OPTARG}
+#         ;;
+#     # k)
+#     #     key_file=${OPTARG}
+#     #     ;;
+#     n)
+#         key_name=${OPTARG}
+#         ;;
+#     # j)
+#     #     jmeter_distribution=${OPTARG}
+#     #     ;;
+#     # o)
+#     #     oracle_jdk_distribution=${OPTARG}
+#     #     ;;
+#     # g)
+#     #     gcviewer_jar_path=${OPTARG}
+#     #     ;;
+#     s)
+#         stack_name_prefix=${OPTARG}
+#         ;;
+#     b)
+#         s3_bucket_name=${OPTARG}
+#         ;;
+#     r)
+#         s3_bucket_region=${OPTARG}
+#         ;;
+#     J)
+#         jmeter_client_ec2_instance_type=${OPTARG}
+#         ;;
+#     # S)
+#     #     jmeter_server_ec2_instance_type=${OPTARG}
+#     #     ;;
+#     N)
+#         netty_ec2_instance_type=${OPTARG}
+#         ;;
+#     t)
+#         number_of_stacks=${OPTARG}
+#         ;;
+#     p)
+#         parallel_parameter_option=${OPTARG}
+#         ;;
+#     w)
+#         minimum_stack_creation_wait_time=${OPTARG}
+#         ;;
+#     \?)
+#         usage
+#         exit 1
+#         ;;
+#     esac
+# done
+# shift "$((OPTIND - 1))"
 
-run_performance_tests_options=("$@")
+file="./$1"
+declare -A arr_prop
+if [ -f "$file" ]
+then
+    while IFS='=' read -r key value; do
+        arr_prop["$key"]="$value"
+    done < $file
+    user_email=${arr_prop[user_email]}
+    user_access_key_id=${arr_prop[user_access_key]}
+    user_secret_key=${arr_prop[user_secret_access_key]}
+    key_name=${arr_prop[key_name]}
+    stack_name_prefix=${arr_prop[stack_name_prefix]}
+    s3_bucket_name=${arr_prop[s3_bucket_name]}
+    s3_bucket_region=${arr_prop[s3_bucket_region]}
+    jmeter_client_ec2_instance_type=${arr_prop[jmeter_client_ec2]}
+    netty_ec2_instance_type=${arr_prop[netty_ec2]}
+    for i in "${!arr_prop[@]}"
+        do
+            echo "key :" $i
+            echo "value:" ${arr_prop[$i]}
+        done
+else
+  echo "$file not found."
+  exit 1
+fi
 
 if [[ -z $user_email ]]; then
     echo "Please provide your email address."
@@ -176,17 +206,27 @@ if ! [[ "$user_email" =~ (.+)@(.+) ]]; then
     exit 1
 fi
 
-if [[ ! -f $performance_scripts_distribution ]]; then
-    echo "Please provide Performance Distribution."
+if [[ -z $user_access_key_id ]]; then
+    echo "Please provide your access key id."
     exit 1
 fi
 
-performance_scripts_distribution_filename=$(basename $performance_scripts_distribution)
-
-if [[ ${performance_scripts_distribution_filename: -7} != ".tar.gz" ]]; then
-    echo "Performance Distribution must have .tar.gz extension"
+if [[ -z $user_secret_key ]]; then
+    echo "Please provide your user secret key"
     exit 1
 fi
+
+# if [[ ! -f $performance_scripts_distribution ]]; then
+#     echo "Please provide Performance Distribution."
+#     exit 1
+# fi
+
+# performance_scripts_distribution_filename=$(basename $performance_scripts_distribution)
+
+# if [[ ${performance_scripts_distribution_filename: -7} != ".tar.gz" ]]; then
+#     echo "Performance Distribution must have .tar.gz extension"
+#     exit 1
+# fi
 
 if [[ -z $results_dir ]]; then
     echo "Please provide a name to the results directory."
@@ -198,55 +238,55 @@ if [[ -d $results_dir ]]; then
     exit 1
 fi
 
-if [[ ! -f $key_file ]]; then
-    echo "Please provide the key file."
-    exit 1
-fi
+# if [[ ! -f $key_file ]]; then
+#     echo "Please provide the key file."
+#     exit 1
+# fi
 
-if [[ ${key_file: -4} != ".pem" ]]; then
-    echo "AWS EC2 Key file must have .pem extension"
-    exit 1
-fi
+# if [[ ${key_file: -4} != ".pem" ]]; then
+#     echo "AWS EC2 Key file must have .pem extension"
+#     exit 1
+# fi
 
 if [[ -z $key_name ]]; then
     echo "Please provide the key name."
     exit 1
 fi
 
-key_filename=$(basename "$key_file")
+# key_filename=$(basename "$key_file")
 
-if [[ "${key_filename%.*}" != "$key_name" ]]; then
-    echo "WARNING: Key file does not match with the key name."
-fi
+# if [[ "${key_filename%.*}" != "$key_name" ]]; then
+#     echo "WARNING: Key file does not match with the key name."
+# fi
 
-if [[ ! -f $jmeter_distribution ]]; then
-    echo "Please specify the JMeter distribution file (apache-jmeter-*.tgz)"
-    exit 1
-fi
+# if [[ ! -f $jmeter_distribution ]]; then
+#     echo "Please specify the JMeter distribution file (apache-jmeter-*.tgz)"
+#     exit 1
+# fi
 
-jmeter_distribution_filename=$(basename $jmeter_distribution)
+# jmeter_distribution_filename=$(basename $jmeter_distribution)
 
-if [[ ${jmeter_distribution_filename: -4} != ".tgz" ]]; then
-    echo "Please provide the JMeter tgz distribution file (apache-jmeter-*.tgz)"
-    exit 1
-fi
+# if [[ ${jmeter_distribution_filename: -4} != ".tgz" ]]; then
+#     echo "Please provide the JMeter tgz distribution file (apache-jmeter-*.tgz)"
+#     exit 1
+# fi
 
-if [[ ! -f $oracle_jdk_distribution ]]; then
-    echo "Please specify the Oracle JDK distribution file (jdk-8u*-linux-x64.tar.gz)"
-    exit 1
-fi
+# if [[ ! -f $oracle_jdk_distribution ]]; then
+#     echo "Please specify the Oracle JDK distribution file (jdk-8u*-linux-x64.tar.gz)"
+#     exit 1
+# fi
 
-oracle_jdk_distribution_filename=$(basename $oracle_jdk_distribution)
+# oracle_jdk_distribution_filename=$(basename $oracle_jdk_distribution)
 
-if ! [[ $oracle_jdk_distribution_filename =~ ^jdk-8u[0-9]+-linux-x64.tar.gz$ ]]; then
-    echo "Please specify a valid Oracle JDK distribution file (jdk-8u*-linux-x64.tar.gz)"
-    exit 1
-fi
+# if ! [[ $oracle_jdk_distribution_filename =~ ^jdk-8u[0-9]+-linux-x64.tar.gz$ ]]; then
+#     echo "Please specify a valid Oracle JDK distribution file (jdk-8u*-linux-x64.tar.gz)"
+#     exit 1
+# fi
 
-if [[ ! -f $gcviewer_jar_path ]]; then
-    echo "Please specify the path to GCViewer JAR file."
-    exit 1
-fi
+# if [[ ! -f $gcviewer_jar_path ]]; then
+#     echo "Please specify the path to GCViewer JAR file."
+#     exit 1
+# fi
 
 if [[ -z $stack_name_prefix ]]; then
     echo "Please provide the stack name prefix."
@@ -268,10 +308,10 @@ if [[ -z $jmeter_client_ec2_instance_type ]]; then
     exit 1
 fi
 
-if [[ -z $jmeter_server_ec2_instance_type ]]; then
-    echo "Please provide the Amazon EC2 Instance Type for JMeter Server."
-    exit 1
-fi
+# if [[ -z $jmeter_server_ec2_instance_type ]]; then
+#     echo "Please provide the Amazon EC2 Instance Type for JMeter Server."
+#     exit 1
+# fi
 
 if [[ -z $netty_ec2_instance_type ]]; then
     echo "Please provide the Amazon EC2 Instance Type for Netty (Backend) Service."
@@ -332,13 +372,14 @@ pip install -r $script_dir/python-requirements.txt
 results_dir=$(realpath $results_dir)
 mkdir $results_dir
 echo "Results will be downloaded to $results_dir"
-# Get absolute path of GCViewer
-gcviewer_jar_path=$(realpath $gcviewer_jar_path)
+# # Get absolute path of GCViewer
+# gcviewer_jar_path=$(realpath $gcviewer_jar_path)
 # Copy scripts to results directory (in case if we need to use the scripts again)
 mkdir $results_dir/scripts
-cp -v $performance_scripts_distribution $results_dir/scripts/
+# cp -v $performance_scripts_distribution $results_dir/scripts/
 
-aws_region="$(aws configure get region)"
+# aws_region="$(aws configure get region)"
+aws_region="us-east-2"
 echo "Current AWS Region: $aws_region"
 
 # Save metadata
@@ -346,7 +387,7 @@ declare -A test_parameters
 test_parameters[application_name]="$application_name"
 test_parameters[number_of_stacks]="$number_of_stacks"
 test_parameters[jmeter_client_ec2_instance_type]="$jmeter_client_ec2_instance_type"
-test_parameters[jmeter_server_ec2_instance_type]="$jmeter_server_ec2_instance_type"
+# test_parameters[jmeter_server_ec2_instance_type]="$jmeter_server_ec2_instance_type"
 test_parameters[netty_ec2_instance_type]="$netty_ec2_instance_type"
 
 if function_exists get_test_metadata; then
@@ -363,14 +404,14 @@ for key in "${!test_parameters[@]}"; do
 done
 jq -n "${test_parameters_args[@]}" "$test_parameters_json" >$results_dir/cf-test-metadata.json
 
-estimate_command="$script_dir/../jmeter/${run_performance_tests_script_name} -t ${run_performance_tests_options[@]}"
-echo "Estimating total time for performance tests: $estimate_command"
-# Estimating this script will also validate the options. It's important to validate options before creating the stack.
-$estimate_command
+# estimate_command="$script_dir/../jmeter/${run_performance_tests_script_name} -t ${run_performance_tests_options[@]}"
+# echo "Estimating total time for performance tests: $estimate_command"
+# # Estimating this script will also validate the options. It's important to validate options before creating the stack.
+# $estimate_command
 
 # Save test metadata
-mv test-metadata.json $results_dir
-mv test-duration.json $results_dir
+# mv test-metadata.json $results_dir
+# mv test-duration.json $results_dir
 
 # Region Display Names
 # The AWS Pricing API uses display names to filter location.
@@ -488,80 +529,84 @@ declare -a jmeter_servers_per_stack
 echo "Number of stacks to create: $number_of_stacks."
 max_jmeter_servers=1
 # echo "Performance test options given to stack(s): "
-for ((i = 0; i < ${#performance_test_options[@]}; i++)); do
-    declare -a options_array=(${performance_test_options[$i]})
-    declare -a concurrent_users=()
-    # Flag to check whether next parameter is an argument to -u
-    next_opt_param=false
-    for opt in ${options_array[@]}; do
-        if [[ $opt == -$parallel_parameter_option* ]]; then
-            optarg="${opt:2}"
-            if [[ ! -z $optarg ]]; then
-                concurrent_users+=("${optarg}")
-            else
-                next_opt_param=true
-            fi
-        else
-            if [[ $next_opt_param == true ]]; then
-                concurrent_users+=("${opt}")
-                next_opt_param=false
-            fi
-        fi
-    done
+# for ((i = 0; i < ${#performance_test_options[@]}; i++)); do
+#     declare -a options_array=(${performance_test_options[$i]})
+#     declare -a concurrent_users=()
+#     # Flag to check whether next parameter is an argument to -u
+#     next_opt_param=false
+#     for opt in ${options_array[@]}; do
+#         if [[ $opt == -$parallel_parameter_option* ]]; then
+#             optarg="${opt:2}"
+#             if [[ ! -z $optarg ]]; then
+#                 concurrent_users+=("${optarg}")
+#             else
+#                 next_opt_param=true
+#             fi
+#         else
+#             if [[ $next_opt_param == true ]]; then
+#                 concurrent_users+=("${opt}")
+#                 next_opt_param=false
+#             fi
+#         fi
+#     done
 
-    # Determine JMeter Servers
-    max_concurrent_users="0"
-    for users in ${concurrent_users[@]}; do
-        if [[ $users -gt $max_concurrent_users ]]; then
-            max_concurrent_users=$users
-        fi
-    done
-    jmeter_servers=1
-    if [[ $max_concurrent_users -gt 500 ]]; then
-        jmeter_servers=2
-        max_jmeter_servers=2
-    fi
-    jmeter_servers_per_stack+=("$jmeter_servers")
-    performance_test_options[$i]+=" -n $jmeter_servers"
-    estimate_command="$script_dir/../jmeter/${run_performance_tests_script_name} -t ${performance_test_options[$i]}"
-    echo "$(($i + 1)): Estimating total time for the tests in stack $(($i + 1)) with $jmeter_servers JMeter server(s) handling a maximum of $max_concurrent_users concurrent users: $estimate_command"
-    $estimate_command
-done
+#     # Determine JMeter Servers
+#     max_concurrent_users="0"
+#     for users in ${concurrent_users[@]}; do
+#         if [[ $users -gt $max_concurrent_users ]]; then
+#             max_concurrent_users=$users
+#         fi
+#     done
+#     jmeter_servers=1
+#     if [[ $max_concurrent_users -gt 500 ]]; then
+#         jmeter_servers=2
+#         max_jmeter_servers=2
+#     fi
+#     jmeter_servers_per_stack+=("$jmeter_servers")
+#     performance_test_options[$i]+=" -n $jmeter_servers"
+#     estimate_command="$script_dir/../jmeter/${run_performance_tests_script_name} -t ${performance_test_options[$i]}"
+#     echo "$(($i + 1)): Estimating total time for the tests in stack $(($i + 1)) with $jmeter_servers JMeter server(s) handling a maximum of $max_concurrent_users concurrent users: $estimate_command"
+#     $estimate_command
+# done
+jmeter_servers=1
+jmeter_servers_per_stack+=("$jmeter_servers")
 echo "Maximum number of JMeter(s): $max_jmeter_servers"
 
 temp_dir=$(mktemp -d)
 
-# Get absolute paths
-key_file=$(realpath $key_file)
-performance_scripts_distribution=$(realpath $performance_scripts_distribution)
-jmeter_distribution=$(realpath $jmeter_distribution)
-oracle_jdk_distribution=$(realpath $oracle_jdk_distribution)
+# # Get absolute paths
+# key_file=$(realpath $key_file)
+# performance_scripts_distribution=$(realpath $performance_scripts_distribution)
+# jmeter_distribution=$(realpath $jmeter_distribution)
+# oracle_jdk_distribution=$(realpath $oracle_jdk_distribution)
 
-ln -s $key_file $temp_dir/$key_filename
-ln -s $performance_scripts_distribution $temp_dir/$performance_scripts_distribution_filename
-ln -s $jmeter_distribution $temp_dir/$jmeter_distribution_filename
-ln -s $oracle_jdk_distribution $temp_dir/$oracle_jdk_distribution_filename
+# ln -s $key_file $temp_dir/$key_filename
+# ln -s $performance_scripts_distribution $temp_dir/$performance_scripts_distribution_filename
+# ln -s $jmeter_distribution $temp_dir/$jmeter_distribution_filename
+# ln -s $oracle_jdk_distribution $temp_dir/$oracle_jdk_distribution_filename
 
-if function_exists create_links; then
-    create_links
-fi
+# if function_exists create_links; then
+#     create_links
+# fi
 
-echo "Syncing files in $temp_dir to S3 Bucket $s3_bucket_name..."
-aws s3 sync --quiet --delete $temp_dir s3://$s3_bucket_name
+# echo "Syncing files in $temp_dir to S3 Bucket $s3_bucket_name..."
+# aws s3 sync --quiet --delete $temp_dir s3://$s3_bucket_name
 
 echo "Listing files in S3 Bucket $s3_bucket_name..."
 aws --region $s3_bucket_region s3 ls --summarize s3://$s3_bucket_name
 
 declare -A cf_parameters
 cf_parameters[UserEmail]="$user_email"
+cf_parameters[AccessKeyId]="$user_access_key_id"
+cf_parameters[SecretAccessKey]="$user_secret_key"
 cf_parameters[KeyName]="$key_name"
 cf_parameters[BucketName]="$s3_bucket_name"
 cf_parameters[BucketRegion]="$s3_bucket_region"
-cf_parameters[PerformanceDistributionName]="$performance_scripts_distribution_filename"
-cf_parameters[JMeterDistributionName]="$jmeter_distribution_filename"
-cf_parameters[OracleJDKDistributionName]="$oracle_jdk_distribution_filename"
+cf_parameters[PerformanceDistributionName]="performance-apim-distribution-0.1.1-SNAPSHOT.tar.gz"
+cf_parameters[JMeterDistributionName]="apache-jmeter-5.1.1.tgz"
+cf_parameters[OracleJDKDistributionName]="jdk-8u161-linux-x64.tar.gz"
 cf_parameters[JMeterClientInstanceType]="$jmeter_client_ec2_instance_type"
-cf_parameters[JMeterServerInstanceType]="$jmeter_server_ec2_instance_type"
+cf_parameters[JMeterServerInstanceType]="t3.micro"
 cf_parameters[BackendInstanceType]="$netty_ec2_instance_type"
 
 if function_exists get_cf_parameters; then
@@ -584,12 +629,13 @@ function delete_stack() {
 declare -a stack_ids
 
 function exit_handler() {
-    #Delete stack if it's already running
-    for stack_id in ${stack_ids[@]}; do
-        if aws cloudformation describe-stacks --stack-name $stack_id >/dev/null 2>&1; then
-            delete_stack $stack_id
-        fi
-    done
+    # #Delete stack if it's already running
+    #  echo "Deleting.."
+    #  for stack_id in ${stack_ids[@]}; do
+    #      if aws cloudformation describe-stacks --stack-name $stack_id >/dev/null 2>&1; then
+    #          delete_stack $stack_id
+    #      fi
+    #  done
     printf "Script execution time: %s\n" "$(format_time $(measure_time $script_start_time))"
 }
 
@@ -617,7 +663,7 @@ for ((i = 0; i < ${#performance_test_options[@]}; i++)); do
     echo "Validating stack: $stack_name: $cf_template"
     aws cloudformation validate-template --template-body file://$cf_template
     if [[ $jmeter_servers -eq 1 ]]; then
-        cf_parameters[JMeterClientInstanceType]="$jmeter_server_ec2_instance_type"
+        cf_parameters[JMeterClientInstanceType]="t3.micro"
     fi
 
     cf_parameters_str=""
@@ -635,6 +681,8 @@ for ((i = 0; i < ${#performance_test_options[@]}; i++)); do
     # stack_id="Stack"
     stack_ids+=("$stack_id")
     echo "Created stack: $stack_name. ID: $stack_id"
+    jq -n --arg stack_details $stack_id '{"stack_id":"\($stack_details)"}' >$results_dir/stack_id.json
+    # jq -n --arg results_details $results_dir '{"results_dir":"\($results_details)"}' >results_dir.json
 done
 
 function download_files() {
@@ -678,51 +726,69 @@ function download_files() {
     fi
 }
 
-function save_logs_and_delete_stack() {
+# function save_logs_and_delete_stack() {
+#     local stack_id="$1"
+#     local stack_name="$2"
+#     local stack_results_dir="$3"
+#     # Get stack events
+#     local stack_events_json=$stack_results_dir/stack-events.json
+#     echo "Saving $stack_name stack events to $stack_events_json"
+#     aws cloudformation describe-stack-events --stack-name $stack_id --no-paginate --output json >$stack_events_json
+#     # Check whether there are any failed events
+#     cat $stack_events_json | jq '.StackEvents | .[] | select ( .ResourceStatus == "CREATE_FAILED" )'
+
+#     # Download log events
+#     local log_group_name="${stack_name}-CloudFormationLogs"
+#     local log_streams_json=$stack_results_dir/log-streams.json
+#     if aws logs describe-log-streams --log-group-name $log_group_name --output json >$log_streams_json; then
+#         local log_events_file=$stack_results_dir/log-events.log
+#         for log_stream in $(cat $log_streams_json | jq -r '.logStreams | .[] | .logStreamName'); do
+#             echo "[$log_group_name] Downloading log events from stream: $log_stream..."
+#             echo "#### The beginning of log events from $log_stream" >>$log_events_file
+#             aws logs get-log-events --log-group-name $log_group_name --log-stream-name $log_stream --output text >>$log_events_file
+#             echo -ne "\n\n#### The end of log events from $log_stream\n\n" >>$log_events_file
+#         done
+#     else
+#         echo "WARNING: There was an error getting log streams from the log group $log_group_name. Check whether AWS CloudWatch logs are enabled."
+#     fi
+
+#     # Download files
+#     download_files ${stack_id} ${stack_name} ${stack_results_dir}
+
+#     if [ "$SUSPEND" = true ]; then
+#         echo "SUSPEND is true, holding the deletion of stack: $stack_id"
+#         if ! sleep infinity; then
+#             echo "Sleep terminated! Proceeding to delete the stack: $stack_id"
+#         fi
+#     fi
+
+#     delete_stack $stack_id
+# }
+
+# function wait_and_download_files() {
+#     local stack_id="$1"
+#     local stack_name="$2"
+#     local stack_results_dir="$3"
+#     local wait_time="$4"
+#     sleep $wait_time
+#     local suffix="$(date +%Y%m%d%H%M%S)"
+#     local stack_files_dir="$stack_results_dir/stack-files"
+#     mkdir -p $stack_files_dir
+#     local stack_status_json=$stack_files_dir/stack-status-$suffix.json
+#     echo "Saving $stack_name stack status to $stack_status_json"
+#     aws cloudformation describe-stacks --stack-name $stack_id --no-paginate --output json >$stack_status_json
+#     local stack_status="$(jq -r '.Stacks[] | .StackStatus' $stack_status_json || echo "")"
+#     echo "Current status of $stack_name stack is $stack_status"
+#     if [[ "$stack_status" != "CREATE_COMPLETE" ]]; then
+#         download_files ${stack_id} ${stack_name} ${stack_results_dir}
+#     fi
+# }
+function download_stack_files() {
     local stack_id="$1"
     local stack_name="$2"
     local stack_results_dir="$3"
-    # Get stack events
-    local stack_events_json=$stack_results_dir/stack-events.json
-    echo "Saving $stack_name stack events to $stack_events_json"
-    aws cloudformation describe-stack-events --stack-name $stack_id --no-paginate --output json >$stack_events_json
-    # Check whether there are any failed events
-    cat $stack_events_json | jq '.StackEvents | .[] | select ( .ResourceStatus == "CREATE_FAILED" )'
-
-    # Download log events
-    local log_group_name="${stack_name}-CloudFormationLogs"
-    local log_streams_json=$stack_results_dir/log-streams.json
-    if aws logs describe-log-streams --log-group-name $log_group_name --output json >$log_streams_json; then
-        local log_events_file=$stack_results_dir/log-events.log
-        for log_stream in $(cat $log_streams_json | jq -r '.logStreams | .[] | .logStreamName'); do
-            echo "[$log_group_name] Downloading log events from stream: $log_stream..."
-            echo "#### The beginning of log events from $log_stream" >>$log_events_file
-            aws logs get-log-events --log-group-name $log_group_name --log-stream-name $log_stream --output text >>$log_events_file
-            echo -ne "\n\n#### The end of log events from $log_stream\n\n" >>$log_events_file
-        done
-    else
-        echo "WARNING: There was an error getting log streams from the log group $log_group_name. Check whether AWS CloudWatch logs are enabled."
-    fi
-
-    # Download files
-    download_files ${stack_id} ${stack_name} ${stack_results_dir}
-
-    if [ "$SUSPEND" = true ]; then
-        echo "SUSPEND is true, holding the deletion of stack: $stack_id"
-        if ! sleep infinity; then
-            echo "Sleep terminated! Proceeding to delete the stack: $stack_id"
-        fi
-    fi
-
-    delete_stack $stack_id
-}
-
-function wait_and_download_files() {
-    local stack_id="$1"
-    local stack_name="$2"
-    local stack_results_dir="$3"
-    local wait_time="$4"
-    sleep $wait_time
+    # local wait_time="$4"
+    # sleep $wait_time
     local suffix="$(date +%Y%m%d%H%M%S)"
     local stack_files_dir="$stack_results_dir/stack-files"
     mkdir -p $stack_files_dir
@@ -736,139 +802,164 @@ function wait_and_download_files() {
     fi
 }
 
-function run_perf_tests_in_stack() {
-    local index=$1
-    local stack_id=$2
-    local stack_name=$3
-    local stack_results_dir=$4
-    trap "save_logs_and_delete_stack ${stack_id} ${stack_name} ${stack_results_dir}" EXIT
-    trap "save_logs_and_delete_stack ${stack_id} ${stack_name} ${stack_results_dir}" RETURN
-    printf "Running performance tests on '%s' stack.\n" "$stack_name"
+echo "Waiting ${minimum_stack_creation_wait_time}m before polling for CREATE_COMPLETE status of the stack: $stack_name"
+sleep ${minimum_stack_creation_wait_time}m
+# Wait till completion
+echo "Polling till the stack creation completes..."
+aws cloudformation wait stack-create-complete --stack-name $stack_id
 
-    # Download files periodically
-    for wait_time in $(seq 5 5 30); do
-        wait_and_download_files ${stack_id} ${stack_name} ${stack_results_dir} ${wait_time}m &
-    done
-    # Sleep for sometime before waiting
-    # This is required since the 'aws cloudformation wait stack-create-complete' will exit with a
-    # return code of 255 after 120 failed checks. The command polls every 30 seconds, which means that the
-    # maximum wait time is one hour.
-    # Due to the dependencies in CloudFormation template, the stack creation may take more than one hour.
-    echo "Waiting ${minimum_stack_creation_wait_time}m before polling for CREATE_COMPLETE status of the stack: $stack_name"
-    sleep ${minimum_stack_creation_wait_time}m
-    # Wait till completion
-    echo "Polling till the stack creation completes..."
-    aws cloudformation wait stack-create-complete --stack-name $stack_id
-    printf "Stack creation time: %s\n" "$(format_time $(measure_time $stack_create_start_time))"
+# local suffix="$(date +%Y%m%d%H%M%S)"
+# local stack_files_dir="$stack_results_dir/stack-files"
+suffix="$(date +%Y%m%d%H%M%S)"
+stack_files_dir="$stack_results_dir/stack-files"
+mkdir -p $stack_files_dir
 
-    # Get stack resources
-    local stack_resources_json=$stack_results_dir/stack-resources.json
-    echo "Saving $stack_name stack resources to $stack_resources_json"
-    aws cloudformation describe-stack-resources --stack-name $stack_id --no-paginate --output json >$stack_resources_json
-    # Print EC2 instances
-    echo "AWS EC2 instances: "
-    cat $stack_resources_json | jq -r '.StackResources | .[] | select ( .ResourceType == "AWS::EC2::Instance" ) | .LogicalResourceId'
+#get stack resources
+#local stack_resources_json=$stack_files_dir/stack-resources-$suffix.json
+stack_resources_json=$stack_files_dir/stack-resources-$suffix.json
+echo "Saving $stack_name stack resources to $stack_resources_json"
+aws cloudformation describe-stack-resources --stack-name $stack_id --no-paginate --output json >$stack_resources_json
+echo "AWS EC2 instances: "
+cat $stack_resources_json | jq -r '.StackResources | .[] | select ( .ResourceType == "AWS::EC2::Instance" ) | .LogicalResourceId'
+echo "Writing results directory name to results_dir.json file..."
+jq -n --arg results_dir $results_dir '{"results_dir":"\($results_dir)"}' >results_dir.json
+download_stack_files ${stack_id} ${stack_name} ${stack_results_dir}
+#printf "Stack creation time: %s\n" "$(format_time $(measure_time $stack_create_start_time))"
 
-    echo "Getting JMeter Client Public IP..."
-    jmeter_client_ip="$(aws cloudformation describe-stacks --stack-name $stack_id --query 'Stacks[0].Outputs[?OutputKey==`JMeterClientPublicIP`].OutputValue' --output text)"
-    echo "JMeter Client Public IP: $jmeter_client_ip"
 
-    ssh_command_prefix="ssh -i $key_file -o "StrictHostKeyChecking=no" -T ubuntu@$jmeter_client_ip"
-    # Run performance tests
-    run_remote_tests_command="$ssh_command_prefix ./jmeter/${run_performance_tests_script_name} ${performance_test_options[$index]}"
-    echo "Running performance tests: $run_remote_tests_command"
-    # Handle any error and let the script continue.
-    $run_remote_tests_command || echo "Remote test ssh command failed: $run_remote_tests_command"
+# function run_perf_tests_in_stack() {
+#     local index=$1
+#     local stack_id=$2
+#     local stack_name=$3
+#     local stack_results_dir=$4
+#     trap "save_logs_and_delete_stack ${stack_id} ${stack_name} ${stack_results_dir}" EXIT
+#     trap "save_logs_and_delete_stack ${stack_id} ${stack_name} ${stack_results_dir}" RETURN
+#     printf "Running performance tests on '%s' stack.\n" "$stack_name"
 
-    echo "Downloading results-without-jtls.zip"
-    # Download results-without-jtls.zip
-    scp -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip:results-without-jtls.zip $stack_results_dir
-    echo "Downloading results.zip"
-    # Download results.zip
-    scp -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip:results.zip $stack_results_dir
+#     # Download files periodically
+#     for wait_time in $(seq 5 5 30); do
+#         wait_and_download_files ${stack_id} ${stack_name} ${stack_results_dir} ${wait_time}m &
+#     done
+#     # Sleep for sometime before waiting
+#     # This is required since the 'aws cloudformation wait stack-create-complete' will exit with a
+#     # return code of 255 after 120 failed checks. The command polls every 30 seconds, which means that the
+#     # maximum wait time is one hour.
+#     # Due to the dependencies in CloudFormation template, the stack creation may take more than one hour.
+#     echo "Waiting ${minimum_stack_creation_wait_time}m before polling for CREATE_COMPLETE status of the stack: $stack_name"
+#     sleep ${minimum_stack_creation_wait_time}m
+#     # Wait till completion
+#     echo "Polling till the stack creation completes..."
+#     aws cloudformation wait stack-create-complete --stack-name $stack_id
+#     printf "Stack creation time: %s\n" "$(format_time $(measure_time $stack_create_start_time))"
 
-    if [[ ! -f $stack_results_dir/results-without-jtls.zip ]]; then
-        echo "Failed to download the results-without-jtls.zip"
-        exit 500
-    fi
+#     # Get stack resources
+#     local stack_resources_json=$stack_results_dir/stack-resources.json
+#     echo "Saving $stack_name stack resources to $stack_resources_json"
+#     aws cloudformation describe-stack-resources --stack-name $stack_id --no-paginate --output json >$stack_resources_json
+#     # Print EC2 instances
+#     echo "AWS EC2 instances: "
+#     cat $stack_resources_json | jq -r '.StackResources | .[] | select ( .ResourceType == "AWS::EC2::Instance" ) | .LogicalResourceId'
 
-    if [[ ! -f $stack_results_dir/results.zip ]]; then
-        echo "Failed to download the results.zip"
-        exit 500
-    fi
-}
+#     echo "Getting JMeter Client Public IP..."
+#     jmeter_client_ip="$(aws cloudformation describe-stacks --stack-name $stack_id --query 'Stacks[0].Outputs[?OutputKey==`JMeterClientPublicIP`].OutputValue' --output text)"
+#     echo "JMeter Client Public IP: $jmeter_client_ip"
 
-for ((i = 0; i < ${#stack_ids[@]}; i++)); do
-    stack_id=${stack_ids[$i]}
-    stack_name="${stack_name_prefix}$(($i + 1))"
-    stack_results_dir="$results_dir/results-$(($i + 1))"
-    log_file="${stack_results_dir}/run.log"
-    run_perf_tests_in_stack $i ${stack_id} ${stack_name} ${stack_results_dir} 2>&1 | ts "[${stack_name}] [%Y-%m-%d %H:%M:%S]" | tee ${log_file} &
-done
+    # ssh_command_prefix="ssh -i $key_file -o "StrictHostKeyChecking=no" -T ubuntu@$jmeter_client_ip"
+    # # Run performance tests
+    # run_remote_tests_command="$ssh_command_prefix ./jmeter/${run_performance_tests_script_name} ${performance_test_options[$index]}"
+    # echo "Running performance tests: $run_remote_tests_command"
+    # # Handle any error and let the script continue.
+    # $run_remote_tests_command || echo "Remote test ssh command failed: $run_remote_tests_command"
+
+    # echo "Downloading results-without-jtls.zip"
+    # # Download results-without-jtls.zip
+    # scp -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip:results-without-jtls.zip $stack_results_dir
+    # echo "Downloading results.zip"
+    # # Download results.zip
+    # scp -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip:results.zip $stack_results_dir
+
+    # if [[ ! -f $stack_results_dir/results-without-jtls.zip ]]; then
+    #     echo "Failed to download the results-without-jtls.zip"
+    #     exit 500
+    # fi
+
+    # if [[ ! -f $stack_results_dir/results.zip ]]; then
+    #     echo "Failed to download the results.zip"
+    #     exit 500
+    # fi
+# }
+
+# for ((i = 0; i < ${#stack_ids[@]}; i++)); do
+#     stack_id=${stack_ids[$i]}
+#     stack_name="${stack_name_prefix}$(($i + 1))"
+#     stack_results_dir="$results_dir/results-$(($i + 1))"
+#     log_file="${stack_results_dir}/run.log"
+#     run_perf_tests_in_stack $i ${stack_id} ${stack_name} ${stack_results_dir} 2>&1 | ts "[${stack_name}] [%Y-%m-%d %H:%M:%S]" | tee ${log_file} &
+# done
 
 # See current jobs
-echo "Jobs: "
-jobs
-echo "Waiting till all performance test jobs are completed..."
-# Wait till parallel tests complete
-wait
+# echo "Jobs: "
+# jobs
+# echo "Waiting till all performance test jobs are completed..."
+# # Wait till parallel tests complete
+# wait
 
-declare -a system_information_files
+# declare -a system_information_files
 
-# Extract all results.
-for ((i = 0; i < ${#performance_test_options[@]}; i++)); do
-    stack_results_dir="$results_dir/results-$(($i + 1))"
-    unzip -nq ${stack_results_dir}/results-without-jtls.zip -x '*/test-metadata.json' -d $results_dir
-    system_info_file="${stack_results_dir}/files/${ec2_instance_name}/system-info.json"
-    if [[ -f $system_info_file ]]; then
-        system_information_files+=("$system_info_file")
-    fi
-done
-cd $results_dir
-echo "Combining system information in following files: ${system_information_files[@]}"
-# Join json files containing system information and create an array
-jq -s . "${system_information_files[@]}" >all-system-info.json
-# Copy metadata before creating CSV
-cp cf-test-metadata.json test-metadata.json results
-echo "Creating summary.csv..."
-# Create warmup summary CSV
-$script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d results -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -w -o summary-warmup.csv
-# Create measurement summary CSV
-$script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d results -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -o summary.csv
-# Zip results
-zip -9qmr results-all.zip results/
+# # Extract all results.
+# for ((i = 0; i < ${#performance_test_options[@]}; i++)); do
+#     stack_results_dir="$results_dir/results-$(($i + 1))"
+#     unzip -nq ${stack_results_dir}/results-without-jtls.zip -x '*/test-metadata.json' -d $results_dir
+#     system_info_file="${stack_results_dir}/files/${ec2_instance_name}/system-info.json"
+#     if [[ -f $system_info_file ]]; then
+#         system_information_files+=("$system_info_file")
+#     fi
+# done
+# cd $results_dir
+# echo "Combining system information in following files: ${system_information_files[@]}"
+# # Join json files containing system information and create an array
+# jq -s . "${system_information_files[@]}" >all-system-info.json
+# # Copy metadata before creating CSV
+# cp cf-test-metadata.json test-metadata.json results
+# echo "Creating summary.csv..."
+# # Create warmup summary CSV
+# $script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d results -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -w -o summary-warmup.csv
+# # Create measurement summary CSV
+# $script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d results -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -o summary.csv
+# # Zip results
+# zip -9qmr results-all.zip results/
 
-# Use following to get all column names:
-echo "Available column names:"
-while read -r line; do echo "\"$line\""; done < <($script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -n "${application_name}" -j $max_jmeter_servers -i -x)
-echo -ne "\n\n"
+# # Use following to get all column names:
+# echo "Available column names:"
+# while read -r line; do echo "\"$line\""; done < <($script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -n "${application_name}" -j $max_jmeter_servers -i -x)
+# echo -ne "\n\n"
 
-declare -a column_names
+# declare -a column_names
 
-while read column_name; do
-    column_names+=("$column_name")
-done < <(get_columns)
+# while read column_name; do
+#     column_names+=("$column_name")
+# done < <(get_columns)
 
-echo "Creating summary results markdown file... Using column names: ${column_names[@]}"
-$script_dir/../jmeter/create-summary-markdown.py --json-parameters parameters=cf-test-metadata.json,parameters=test-metadata.json,instances=all-system-info.json \
-    --column-names "${column_names[@]}"
+# echo "Creating summary results markdown file... Using column names: ${column_names[@]}"
+# $script_dir/../jmeter/create-summary-markdown.py --json-parameters parameters=cf-test-metadata.json,parameters=test-metadata.json,instances=all-system-info.json \
+#     --column-names "${column_names[@]}"
 
-function print_summary() {
-    cat $1 | cut -d, -f 1-13 | column -t -s,
-}
+# function print_summary() {
+#     cat $1 | cut -d, -f 1-13 | column -t -s,
+# }
 
-echo -ne "\n\n"
-echo "Warmup Results:"
-print_summary summary-warmup.csv
+# echo -ne "\n\n"
+# echo "Warmup Results:"
+# print_summary summary-warmup.csv
 
-echo -ne "\n\n"
-echo "Measurement Results:"
-print_summary summary.csv
+# echo -ne "\n\n"
+# echo "Measurement Results:"
+# print_summary summary.csv
 
-awk -F, '{ if ($8 > 0)  print }' summary.csv >summary-errors.csv
+# awk -F, '{ if ($8 > 0)  print }' summary.csv >summary-errors.csv
 
-if [[ $(wc -l <summary-errors.csv) -gt 1 ]]; then
-    echo -ne "\n\n"
-    echo "WARNING: There are errors in measurement results! Please check."
-    print_summary summary-errors.csv
-fi
+# if [[ $(wc -l <summary-errors.csv) -gt 1 ]]; then
+#     echo -ne "\n\n"
+#     echo "WARNING: There are errors in measurement results! Please check."
+#     print_summary summary-errors.csv
+# fi

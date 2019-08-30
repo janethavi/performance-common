@@ -42,6 +42,12 @@ Parameters:
     Description: Email address of the user creating this stack
     AllowedPattern: '[^\s@]+@[^\s@]+\.[^\s@]+'
     ConstraintDescription: You should enter a valid email
+  AccessKeyId:
+    Type: String
+    Description: Access key id of the user
+  SecretAccessKey:
+    Type: String
+    Description: Secret Access key id of the user
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
     Type: 'AWS::EC2::KeyPair::KeyName'
@@ -76,47 +82,6 @@ Parameters:
 # Create AWS resources
 ################################
 Resources:
-  #########################################
-  # Create IAM resources to read S3 bucket
-  #########################################
-  CfnUser:
-    Type: 'AWS::IAM::User'
-    Properties:
-      Path: /
-      Policies:
-        - PolicyName: root
-          PolicyDocument:
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'cloudformation:DescribeStackResource'
-                  - 's3:GetObject'
-                Resource: '*'
-  CfnKeys:
-    Type: 'AWS::IAM::AccessKey'
-    Properties:
-      UserName: !Ref CfnUser
-  BucketPolicy:
-    Type: 'AWS::S3::BucketPolicy'
-    Properties:
-      PolicyDocument:
-        Version: 2008-10-17
-        Id: MyPolicy
-        Statement:
-          - Sid: ReadAccess
-            Action:
-              - 's3:GetObject'
-            Effect: Allow
-            Resource: !Join
-              - ''
-              - - 'arn:aws:s3:::'
-                - !Ref BucketName
-                - /*
-            Principal:
-              AWS: !GetAtt
-                - CfnUser
-                - Arn
-      Bucket: !Ref BucketName
 {% if enable_cloudwatch_logs %}
   ####################################################################
   # Create IAM resources to configure AWS Logs Agent in EC2 instances
@@ -314,7 +279,7 @@ Resources:
 {%- macro ec2instance(resource_name, name, instance_type, files=[], public=false, volume_size=None) %}
   {{ resource_name }}:
     Type: 'AWS::EC2::Instance'
-    DependsOn: [AttachGateway, BucketPolicy]
+    DependsOn: [AttachGateway]
     Metadata:
       'AWS::CloudFormation::Init':
         config:
@@ -427,10 +392,8 @@ Resources:
       'AWS::CloudFormation::Authentication':
         S3AccessCreds:
           type: S3
-          accessKeyId: !Ref CfnKeys
-          secretKey: !GetAtt
-            - CfnKeys
-            - SecretAccessKey
+          accessKeyId: !Ref AccessKeyId
+          secretKey: !Ref SecretAccessKey
           buckets:
             - !Ref BucketName
     Properties:
