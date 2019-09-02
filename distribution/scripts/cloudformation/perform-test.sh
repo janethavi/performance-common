@@ -67,7 +67,7 @@ fi
 # [[ $concurrent_users_array ]] && export A_MY_ARRAY=$(declare -p concurrent_users_array)
 # [[ $message_sizes_array ]] && export B_MY_ARRAY=$(declare -p message_sizes_array)
 
-#run_performance_tests_options=("$@")
+run_performance_tests_options=("$@")
 
 echo "${run_performance_tests_options[@]}"
 
