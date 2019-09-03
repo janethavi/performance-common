@@ -169,8 +169,8 @@ function usage() {
 #     esac
 # done
 # shift "$((OPTIND - 1))"
-
-file="./$1"
+ls
+file="./$1/testplan.properties"
 declare -A arr_prop
 if [ -f "$file" ]
 then
