@@ -369,7 +369,7 @@ fi
 echo "Checking whether python requirements are installed..."
 python --version
 sudo python -m pip install --force-reinstall pip==9.0.1
-chown -R user-id:group-id /usr/local/lib/python2.7/dist-packages/MarkupSafe-1.1.1.dist-info
+#chown -R user-id:group-id /usr/local/lib/python2.7/dist-packages/MarkupSafe-1.1.1.dist-info
 pip --version
 #sudo apt-get -y remove python-pip
 python --version
