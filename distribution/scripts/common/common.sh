@@ -38,6 +38,8 @@ function check_command() {
         #exit 1
         if [ "$1" == "python" ]; then 
             install_command python3
+        elif [ "$1" == "ts" ]; then
+            install_command moreutils
         else
             install_command $1
         fi
