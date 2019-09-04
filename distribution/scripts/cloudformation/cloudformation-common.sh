@@ -30,7 +30,7 @@ check_command python
 check_command unzip
 check_command zip
 check_command jq
-check_command aws
+#check_command aws
 check_command ts
 
 script_start_time=$(date +%s)
