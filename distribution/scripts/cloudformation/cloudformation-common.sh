@@ -27,6 +27,7 @@ script_dir=$(realpath $script_dir)
 # Check commands
 check_command bc
 check_command python
+check_command pip
 check_command unzip
 check_command zip
 check_command jq

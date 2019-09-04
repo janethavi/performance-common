@@ -43,6 +43,10 @@ function check_command() {
             echo "Installing $1"
             sudo apt-get update
             sudo apt-get -y install moreutils
+        elif [ "$1" == "pip" ]; then
+            echo "Installing $1"
+            sudo apt-get update
+            sudo apt-get -y install python-pip
         else
             install_command $1
         fi
