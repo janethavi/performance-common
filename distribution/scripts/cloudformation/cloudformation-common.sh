@@ -368,7 +368,7 @@ fi
 
 echo "Checking whether python requirements are installed..."
 python --version
-sudo apt-get -y install python3.6
+pip -V
 python --version
 pip install -r $script_dir/python-requirements.txt
 
