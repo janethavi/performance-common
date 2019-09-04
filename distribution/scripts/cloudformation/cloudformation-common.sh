@@ -368,7 +368,7 @@ fi
 
 echo "Checking whether python requirements are installed..."
 python --version
-pip install --upgrade pip
+sudo python -m pip install --force-reinstall pip==9.0.1
 pip --version
 #sudo apt-get -y remove python-pip
 python --version
