@@ -372,7 +372,8 @@ sudo python -m pip install --force-reinstall pip==9.0.1
 #chown -R user-id:group-id /usr/local/lib/python2.7/dist-packages/MarkupSafe-1.1.1.dist-info
 pip --version
 #sudo apt-get -y remove python-pip
-python --version
+virtualenv .venv
+source .venv/bin/activate
 #sudo api-get -y install python3-pip
 pip install -r $script_dir/python-requirements.txt
 
