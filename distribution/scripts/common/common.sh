@@ -27,10 +27,20 @@ function command_exists() {
     command -v $1 >/dev/null 2>&1
 }
 
+function install_command() {
+    sudo apt-get update
+    sudo apt-get install $1
+}
+
 function check_command() {
     if ! command_exists $1; then
         echo "Please install $1"
-        exit 1
+        #exit 1
+        if [ "$1" == "python" ]; then 
+            install_command python3
+        else
+            install_command $1
+        fi
     fi
 }
 
