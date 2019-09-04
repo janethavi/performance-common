@@ -28,18 +28,21 @@ function command_exists() {
 }
 
 function install_command() {
+    echo "Installing $1"
     sudo apt-get update
     sudo apt-get install $1
 }
 
 function check_command() {
     if ! command_exists $1; then
-        echo "Please install $1"
+        echo "$1 is not available"
         #exit 1
         if [ "$1" == "python" ]; then 
             install_command python3
         elif [ "$1" == "ts" ]; then
-            install_command moreutils
+            echo "Installing $1"
+            sudo apt-get update
+            sudo apt-get -y install moreutils
         else
             install_command $1
         fi
