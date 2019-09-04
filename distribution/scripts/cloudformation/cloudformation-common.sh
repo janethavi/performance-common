@@ -368,8 +368,11 @@ fi
 
 echo "Checking whether python requirements are installed..."
 python --version
-pip -V
+pip install --upgrade pip
+pip --version
+#sudo apt-get -y remove python-pip
 python --version
+#sudo api-get -y install python3-pip
 pip install -r $script_dir/python-requirements.txt
 
 # Use absolute path
