@@ -367,6 +367,8 @@ if ! function_exists get_columns; then
 fi
 
 echo "Checking whether python requirements are installed..."
+python -- version
+python2 -m pip install --upgrade pip
 pip install -r $script_dir/python-requirements.txt
 
 # Use absolute path
