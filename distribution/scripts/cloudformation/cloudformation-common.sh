@@ -182,9 +182,9 @@ then
     user_access_key_id=${arr_prop[user_access_key]}
     user_secret_key=${arr_prop[user_secret_access_key]}
     key_name=${arr_prop[key_name]}
-    stack_name_prefix=${arr_prop[stack_name_prefix]}
+    stack_name_prefix="${arr_prop[stack_name_prefix]}"
     s3_bucket_name=${arr_prop[s3_bucket_name]}
-    s3_bucket_region=${arr_prop[s3_bucket_region]}
+    s3_bucket_region="${arr_prop[s3_bucket_region]}"
     jmeter_client_ec2_instance_type=${arr_prop[jmeter_client_ec2]}
     netty_ec2_instance_type=${arr_prop[netty_ec2]}
     for i in "${!arr_prop[@]}"
