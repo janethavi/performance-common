@@ -393,6 +393,7 @@ echo "Current AWS Region: $aws_region"
 
 export AWS_ACCESS_KEY_ID=$user_access_key_id
 export AWS_SECRET_ACCESS_KEY=$user_secret_key
+export AWS_DEFAULT_REGION=$aws_region
 
 # Save metadata
 declare -A test_parameters
