@@ -35,7 +35,7 @@ default_parallel_parameter_option="u"
 parallel_parameter_option="$default_parallel_parameter_option"
 ALLOWED_OPTIONS="ubsm"
 
-file="./$1"
+file=$1
 declare -A arr_prop
 if [ -f "$file" ]
 then
@@ -62,6 +62,7 @@ then
     done < <(grep msg_size= file2.properties | sed "s/msg_size=//")
 else
   echo "$file not found."
+  exit 1
 fi
 
 # [[ $concurrent_users_array ]] && export A_MY_ARRAY=$(declare -p concurrent_users_array)
