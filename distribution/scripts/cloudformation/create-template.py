@@ -19,7 +19,7 @@
 # ----------------------------------------------------------------------------
 # Create AWS CloudFormation template
 # ----------------------------------------------------------------------------
-
+import pdb; pdb.set_trace()
 import argparse
 import os
 
@@ -66,11 +66,6 @@ def main():
     parser.add_argument("--enable-cloudwatch-logs", default=False,
                         action="store_true", help="Enable AWS CloudWatch logs")
     args = parser.parse_args()
-    print (type(args.region))
-    print (type(args.ami_id))
-    print (type(args.jmeter_servers))
-    print (type(args.start_bastion))
-    print (type(args.output_name))
 
     context = {
         'region': args.region,

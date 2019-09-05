@@ -657,7 +657,7 @@ trap exit_handler EXIT
 # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/finding-an-ami.html
 latest_ami_id="$(aws ec2 describe-images --owners 099720109477 --filters 'Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-????????' 'Name=state,Values=available' --output json | jq -r '.Images | sort_by(.CreationDate) | last(.[]).ImageId')"
 echo "Latest Ubuntu AMI ID: $latest_ami_id"
-
+set -x
 # Create stacks
 stack_create_start_time=$(date +%s)
 for ((i = 0; i < ${#performance_test_options[@]}; i++)); do
@@ -670,14 +670,14 @@ for ((i = 0; i < ${#performance_test_options[@]}; i++)); do
     $script_dir/create-template.py ${CREATE_TEMPLATE_OPTS} --template-name ${aws_cloudformation_template_filename} \
         --region $aws_region \
         --ami-id $latest_ami_id \
-        --output-name $cf_template \
+        --output-name "$cf_template" \
         --jmeter-servers $jmeter_servers --start-bastion
     echo "Validating stack: $stack_name: $cf_template"
     aws cloudformation validate-template --template-body file://$cf_template
     if [[ $jmeter_servers -eq 1 ]]; then
         cf_parameters[JMeterClientInstanceType]="t3.micro"
     fi
-
+set +x
     cf_parameters_str=""
     for key in "${!cf_parameters[@]}"; do
         cf_parameters_str+=" ParameterKey=${key},ParameterValue=${cf_parameters[$key]}"
