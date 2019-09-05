@@ -19,12 +19,11 @@
 # ----------------------------------------------------------------------------
 # Create AWS CloudFormation template
 # ----------------------------------------------------------------------------
-import pdb; pdb.set_trace()
 import argparse
 import os
 
 from jinja2 import Environment, FileSystemLoader
-
+import pdb; pdb.set_trace()
 PATH = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_ENVIRONMENT = Environment(
     autoescape=False,
@@ -66,6 +65,7 @@ def main():
     parser.add_argument("--enable-cloudwatch-logs", default=False,
                         action="store_true", help="Enable AWS CloudWatch logs")
     args = parser.parse_args()
+
 
     context = {
         'region': args.region,
