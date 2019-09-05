@@ -664,7 +664,7 @@ for ((i = 0; i < ${#performance_test_options[@]}; i++)); do
     stack_name="${stack_name_prefix}$(($i + 1))"
     stack_results_dir="$results_dir/results-$(($i + 1))"
     mkdir -p $stack_results_dir
-    cf_template=$stack_results_dir/${aws_cloudformation_template_filename}
+    cf_template="$stack_results_dir/${aws_cloudformation_template_filename}"
     jmeter_servers=${jmeter_servers_per_stack[$i]}
     echo "JMeter Servers: $jmeter_servers"
     $script_dir/create-template.py ${CREATE_TEMPLATE_OPTS} --template-name ${aws_cloudformation_template_filename} \
