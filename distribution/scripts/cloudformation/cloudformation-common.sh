@@ -391,6 +391,9 @@ mkdir $results_dir/scripts
 aws_region="us-east-2"
 echo "Current AWS Region: $aws_region"
 
+export AWS_ACCESS_KEY_ID=$user_access_key_id
+export AWS_SECRET_ACCESS_KEY=$user_secret_key
+
 # Save metadata
 declare -A test_parameters
 test_parameters[application_name]="$application_name"
