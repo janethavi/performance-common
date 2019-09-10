@@ -35,7 +35,7 @@ default_parallel_parameter_option="u"
 parallel_parameter_option="$default_parallel_parameter_option"
 ALLOWED_OPTIONS="ubsm"
 
-file=$1
+file=$2/"deployment.properties"
 declare -A arr_prop
 if [ -f "$file" ]
 then
