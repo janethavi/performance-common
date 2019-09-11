@@ -843,7 +843,6 @@ perf_dir=$script_dir/../../target
 pwd
 tar -zcvf performance-apim-distribution.tar.gz $perf_dir
 perf_dist=$perf_dir/performance-apim-distribution.tar.gz
-cp $perf_dist $input_dir
 #printf "Stack creation time: %s\n" "$(format_time $(measure_time $stack_create_start_time))"
 
 
