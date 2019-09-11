@@ -24,9 +24,9 @@ script_dir=$(dirname "$0")
 script_dir=$(realpath $script_dir)
 . $script_dir/../common/common.sh
 
-declare -a concurrent_users_array
+# declare -a concurrent_users_array
 
-declare -a message_sizes_array
+# declare -a message_sizes_array
 
 key_file=""
 default_number_of_stacks=1
@@ -35,7 +35,7 @@ default_parallel_parameter_option="u"
 parallel_parameter_option="$default_parallel_parameter_option"
 ALLOWED_OPTIONS="ubsm"
 
-file=$2/"deployment.properties"
+file=$1/"deployment.properties"
 declare -A arr_prop
 if [ -f "$file" ]
 then
@@ -49,21 +49,44 @@ then
     j=${arr_prop[heap_memory_jmeter_s]}
     k=${arr_prop[heap_memory_jmeter_c]}
     l=${arr_prop[heap_memory_netty]}
+    msg=${arr_prop[msg_size]}
+    cusr=${arr_prop[con_users]}
     # for i in "${!arr_prop[@]}"
     # do
     #     echo "key :" $i
     #     echo "value:" ${arr_prop[$i]}
     # done
-    while read -r line; do
-         concurrent_users_array=("${concurrent_users_array[@]}" "$line")
-    done < <(grep con_users= file2.properties | sed "s/con_users=//")
-    while read -r line; do
-         message_sizes_array=("${message_sizes_array[@]}" "$line")
-    done < <(grep msg_size= file2.properties | sed "s/msg_size=//")
+    IFS=',' # hyphen (-) is set as delimiter
+    read -ra message_sizes_array <<< "$msg" # msg is read into an array as tokens separated by IFS
+    for i in "${message_sizes_array[@]}"; do # access each element of array
+        echo "$i"
+    done
+    read -ra concurrent_users_array <<< "$cusr" # cusr is read into an array as tokens separated by IFS
+    for i in "${concurrent_users_array[@]}"; do # access each element of array
+        echo "$i"
+    done
+    IFS=' ' # reset to default value after usage
+
+    # while read -r line; do
+    #      concurrent_users_array=("${concurrent_users_array[@]}" "$line")
+    # done < <(grep con_users= file2.properties | sed "s/con_users=//")
+    # while read -r line; do
+    #      message_sizes_array=("${message_sizes_array[@]}" "$line")
+    # done < <(grep msg_size= file2.properties | sed "s/msg_size=//")
 else
   echo "$file not found."
   exit 1
 fi
+# m=$(cat $file | jq -r '.heap_memory_app')
+# s=$(cat $file | jq -r '.backend_sleep')
+# d=$(cat $file | jq -r '.test_duration')
+# w=$(cat $file | jq -r '.warmup_time')
+# j=$(cat $file | jq -r '.heap_memory_jmeter_s')
+# k=$(cat $file | jq -r '.heap_memory_jmeter_c')
+# l=$(cat $file | jq -r '.heap_memory_netty')
+# concurrent_users_array=$(cat $file | jq -r '.con_users[]')
+# message_sizes_array=$(cat $file | jq -r '.msg_size[]')
+
 
 # [[ $concurrent_users_array ]] && export A_MY_ARRAY=$(declare -p concurrent_users_array)
 # [[ $message_sizes_array ]] && export B_MY_ARRAY=$(declare -p message_sizes_array)

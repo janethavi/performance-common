@@ -170,7 +170,8 @@ function usage() {
 #     esac
 # done
 # shift "$((OPTIND - 1))"
-file=$1
+input_dir=$1
+file="$input_dir/testplan-props.properties"
 declare -A arr_prop
 if [ -f "$file" ]
 then
@@ -837,6 +838,11 @@ cat $stack_resources_json | jq -r '.StackResources | .[] | select ( .ResourceTyp
 echo "Writing results directory name to results_dir.json file..."
 jq -n --arg results_dir $results_dir '{"results_dir":"\($results_dir)"}' >results_dir.json
 download_stack_files ${stack_id} ${stack_name} ${stack_results_dir}
+echo "Copying working directory to data bucket.."
+perf_dir=$script_dir/../../target
+tar -cvf performance-apim-distribution.tar $perf_dir
+perf_dist=$perf_dir/performance-apim-distribution.tar
+cp $perf_dist $input_dir
 #printf "Stack creation time: %s\n" "$(format_time $(measure_time $stack_create_start_time))"
 
 
