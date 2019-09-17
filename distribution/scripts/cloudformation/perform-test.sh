@@ -158,7 +158,7 @@ set -x
 # Estimating this script will also validate the options. It's important to validate options before creating the stack.
 # $estimate_command
 echo "Estimating total time for performance tests: "
-$script_dir/../jmeter/${run_performance_tests_script_name} -t -m $m -s $s -d $d -w $w -j $j -k $k -l $l -u "${concurrent_users_array[@]}" -b "${message_sizes_array[@]} "
+$script_dir/../jmeter/run-performance-tests.sh -t -m $m -s $s -d $d -w $w -j $j -k $k -l $l -b "${message_sizes_array[*]}"  -u "${concurrent_users_array[*]}"
 
 results_dir=$(cat results_dir.json | jq -r '.results_dir')
 
@@ -322,8 +322,9 @@ function run_perf_tests_in_stack() {
     # Run performance tests
     # run_remote_tests_command="$ssh_command_prefix ./jmeter/${run_performance_tests_script_name} -m $m -s $s -d $d -w $w -j $j -k $k -l $l -u '${concurrent_users_array[@]}' -b '${message_sizes_array[@]}'"
     # echo "Running performance tests: $run_remote_tests_command"
+    echo "Running performance tests: "
     # Handle any error and let the script continue.
-    $ssh_command_prefix ./jmeter/${run_performance_tests_script_name} -m $m -s $s -d $d -w $w -j $j -k $k -l $l -u "${concurrent_users_array[@]}" -b "${message_sizes_array[@]}" || echo "Remote test ssh command failed: "
+    $ssh_command_prefix ./jmeter/${run_performance_tests_script_name} -m $m -s $s -d $d -w $w -j $j -k $k -l $l -u "${concurrent_users_array[*]}" -b "${message_sizes_array[*]}" || echo "Remote test ssh command failed: "
 
     echo "Downloading results-without-jtls.zip"
     # Download results-without-jtls.zip
