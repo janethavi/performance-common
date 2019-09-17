@@ -151,8 +151,8 @@ declare -a performance_test_options
 
 # Allow to change the script name
 run_performance_tests_script_name=${run_performance_tests_script_name:-run-performance-tests.sh}
-
-estimate_command="$script_dir/../jmeter/${run_performance_tests_script_name} -t -m $m -s $s -d $d -w $w -j $j -k $k -l $l -u '${concurrent_users_array[@]}' -b '${message_sizes_array[@]}'"
+set -x
+estimate_command="$script_dir/../jmeter/${run_performance_tests_script_name} -t -m $m -s $s -d $d -w $w -j $j -k $k -l $l -u '${concurrent_users_array[@]}' -b '50 1024' "
 #estimate_command="$script_dir/../jmeter/${run_performance_tests_script_name}"
 echo "Estimating total time for performance tests: $estimate_command"
 # Estimating this script will also validate the options. It's important to validate options before creating the stack.
