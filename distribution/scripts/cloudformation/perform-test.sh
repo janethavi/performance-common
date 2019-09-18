@@ -315,7 +315,6 @@ function run_perf_tests_in_stack() {
     # # Print EC2 instances
     # echo "AWS EC2 instances: "
     # cat $stack_resources_json | jq -r '.StackResources | .[] | select ( .ResourceType == "AWS::EC2::Instance" ) | .LogicalResourceId'
-    export AWS_DEFAULT_REGION=us-east-2
     echo "Getting JMeter Client Public IP..."
     jmeter_client_ip="$(aws cloudformation describe-stacks --stack-name $stack_id --query 'Stacks[0].Outputs[?OutputKey==`JMeterClientPublicIP`].OutputValue' --output text)"
     echo "JMeter Client Public IP: $jmeter_client_ip"
@@ -326,7 +325,7 @@ function run_perf_tests_in_stack() {
     # echo "Running performance tests: $run_remote_tests_command"
     echo "Running performance tests: "
     # Handle any error and let the script continue.
-    $ssh_command_prefix ./jmeter/${run_performance_tests_script_name} -m $m -s $s -d $d -w $w -j $j -k $k -l $l -u "${concurrent_users_array[*]}" -b "${message_sizes_array[*]}" || echo "Remote test ssh command failed: "
+    $ssh_command_prefix ./jmeter/${run_performance_tests_script_name} -m $m -s $s -d $d -w $w -j $j -k $k -l $l -b "${message_sizes_array[@]}" -u "${concurrent_users_array[@]}"  || echo "Remote test ssh command failed: "
 
     echo "Downloading results-without-jtls.zip"
     # Download results-without-jtls.zip
@@ -345,7 +344,7 @@ function run_perf_tests_in_stack() {
         exit 500
     fi
 }
-
+export AWS_DEFAULT_REGION=us-east-2
 results_dir=$(cat $data_bucket/results_dir.json | jq -r '.results_dir')
 stack_id=$(cat $results_dir/stack_id.json | jq -r '.stack_id')
 stack_name_prefix="wso2-apim-test-"
