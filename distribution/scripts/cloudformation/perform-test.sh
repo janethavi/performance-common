@@ -160,7 +160,7 @@ set -x
 echo "Estimating total time for performance tests: "
 $script_dir/../jmeter/run-performance-tests.sh -t -m $m -s $s -d $d -w $w -j $j -k $k -l $l -b "${message_sizes_array[*]}"  -u "${concurrent_users_array[*]}"
 
-data_bucket=$2
+data_bucket=$(pwd)
 results_dir=$(cat $2/results_dir.json | jq -r '.results_dir')
 
 # Save test metadata
