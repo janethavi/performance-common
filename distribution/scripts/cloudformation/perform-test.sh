@@ -325,7 +325,7 @@ function run_perf_tests_in_stack() {
     # echo "Running performance tests: $run_remote_tests_command"
     echo "Running performance tests: "
     # Handle any error and let the script continue.
-    $ssh_command_prefix ./jmeter/${run_performance_tests_script_name} -m $m -s $s -d $d -w $w -j $j -k $k -l $l -b "${message_sizes_array[@]}" -u "${concurrent_users_array[@]}"  || echo "Remote test ssh command failed: "
+    $ssh_command_prefix ./jmeter/${run_performance_tests_script_name} -m $m -s $s -d $d -w $w -j $j -k $k -l $l -b "${message_sizes_array[*]}" -u "${concurrent_users_array[*]}"  || echo "Remote test ssh command failed: "
 
     echo "Downloading results-without-jtls.zip"
     # Download results-without-jtls.zip
