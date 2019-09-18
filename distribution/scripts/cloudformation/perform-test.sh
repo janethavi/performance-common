@@ -160,11 +160,12 @@ set -x
 echo "Estimating total time for performance tests: "
 $script_dir/../jmeter/run-performance-tests.sh -t -m $m -s $s -d $d -w $w -j $j -k $k -l $l -b "${message_sizes_array[*]}"  -u "${concurrent_users_array[*]}"
 
-results_dir=$(cat results_dir.json | jq -r '.results_dir')
+data_bucket=$2
+results_dir=$(cat $2/results_dir.json | jq -r '.results_dir')
 
 # Save test metadata
-mv test-metadata.json $results_dir
-mv test-duration.json $results_dir
+# mv test-metadata.json $results_dir
+# mv test-duration.json $results_dir
 
 aws s3 cp s3://performance-test-archives/janeth-key.pem $results_dir/janeth-key.pem
 key_file=$results_dir/janeth-key.pem
