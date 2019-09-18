@@ -161,7 +161,8 @@ echo "Estimating total time for performance tests: "
 $script_dir/../jmeter/run-performance-tests.sh -t -m $m -s $s -d $d -w $w -j $j -k $k -l $l -b "${message_sizes_array[*]}"  -u "${concurrent_users_array[*]}"
 
 current_dir=$(pwd)
-results_dir=$(cat $current_dir/../../../../../data-bucket/results_dir.json | jq -r '.results_dir')
+data_bucket=$current_dir/../../../../../data-bucket
+results_dir=$(cat $data_bucket/results_dir.json | jq -r '.results_dir')
 
 # Save test metadata
 # mv test-metadata.json $results_dir
@@ -345,7 +346,7 @@ function run_perf_tests_in_stack() {
     fi
 }
 
-results_dir=$(cat results_dir.json | jq -r '.results_dir')
+results_dir=$(cat $data_bucket/results_dir.json | jq -r '.results_dir')
 stack_id=$(cat $results_dir/stack_id.json | jq -r '.stack_id')
 stack_name_prefix="wso2-apim-test-"
 #stack_id=${stack_ids[$i]}
