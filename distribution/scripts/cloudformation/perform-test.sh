@@ -315,7 +315,7 @@ function run_perf_tests_in_stack() {
     # # Print EC2 instances
     # echo "AWS EC2 instances: "
     # cat $stack_resources_json | jq -r '.StackResources | .[] | select ( .ResourceType == "AWS::EC2::Instance" ) | .LogicalResourceId'
-
+    export AWS_DEFAULT_REGION=us-east-2
     echo "Getting JMeter Client Public IP..."
     jmeter_client_ip="$(aws cloudformation describe-stacks --stack-name $stack_id --query 'Stacks[0].Outputs[?OutputKey==`JMeterClientPublicIP`].OutputValue' --output text)"
     echo "JMeter Client Public IP: $jmeter_client_ip"
