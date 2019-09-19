@@ -321,10 +321,11 @@ function run_perf_tests_in_stack() {
 
     ssh_command_prefix="ssh -i $key_file -o "StrictHostKeyChecking=no" -T ubuntu@$jmeter_client_ip"
     # Run performance tests
-    run_remote_tests_command="$ssh_command_prefix ./jmeter/${run_performance_tests_script_name} -m $m -s $s -d $d -w $w -j $j -k $k -l $l -u '${concurrent_users_array[*]}' -b '${message_sizes_array[*]}'"
-    echo "Running performance tests: $run_remote_tests_command"
+    # run_remote_tests_command="$ssh_command_prefix ./jmeter/${run_performance_tests_script_name} -m $m -s $s -d $d -w $w -j $j -k $k -l $l -u '${concurrent_users_array[*]}' -b '${message_sizes_array[*]}'"
+    # echo "Running performance tests: $run_remote_tests_command"
     # Handle any error and let the script continue.
-    $run_remote_tests_command || echo "Remote test ssh command failed: $run_remote_tests_command"
+    # $run_remote_tests_command || echo "Remote test ssh command failed: $run_remote_tests_command"
+    $ssh_command_prefix ./jmeter/${run_performance_tests_script_name} -m $m -s $s -d $d -w $w -j $j -k $k -l $l -b "${message_sizes_array[*]}"  -u "${concurrent_users_array[*]}" || echo "Remote test ssh command failed:"
 
     echo "Downloading results-without-jtls.zip"
     # Download results-without-jtls.zip
