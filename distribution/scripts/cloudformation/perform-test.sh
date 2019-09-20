@@ -376,10 +376,10 @@ for ((i = 0; i < ${#performance_test_options[@]}; i++)); do
     fi
 done
 cd $results_dir
-mkdir -p ${output_dir}/scenarios
-output_scenarios_dir=$output_dir/scenarios
-cp $stack_results_dir/results.zip $output_scenarios_dir
-unzip $output_scenarios_dir/results.zip
+#mkdir -p ${output_dir}/scenarios
+#output_scenarios_dir=$output_dir/scenarios
+#cp $stack_results_dir/results.zip $output_scenarios_dir
+#unzip $output_scenarios_dir/results.zip
 # echo "Combining system information in following files: ${system_information_files[@]}"
 # # Join json files containing system information and create an array
 # jq -s . "${system_information_files[@]}" >all-system-info.json
