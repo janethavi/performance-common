@@ -36,7 +36,7 @@ parallel_parameter_option="$default_parallel_parameter_option"
 ALLOWED_OPTIONS="ubsm"
 
 file=$1/"deployment.properties"
-output_dir=$3
+OUTPUT_DIR=$3
 declare -A arr_prop
 if [ -f "$file" ]
 then
@@ -376,9 +376,10 @@ for ((i = 0; i < ${#performance_test_options[@]}; i++)); do
     fi
 done
 cd $results_dir
-#mkdir -p ${output_dir}/scenarios
-#output_scenarios_dir=$output_dir/scenarios
-#cp $stack_results_dir/results.zip $output_scenarios_dir
+mkdir -p $OUTPUT_DIR/scenarios
+output_scenarios_dir=$OUTPUT_DIR/scenarios
+cp $stack_results_dir/results.zip $output_scenarios_dir
+unzip $stack_results_dir/results.zip -d $output_scenarios_dir
 #unzip $output_scenarios_dir/results.zip
 # echo "Combining system information in following files: ${system_information_files[@]}"
 # # Join json files containing system information and create an array
