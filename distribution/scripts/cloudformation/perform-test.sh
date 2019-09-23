@@ -36,7 +36,8 @@ parallel_parameter_option="$default_parallel_parameter_option"
 ALLOWED_OPTIONS="ubsm"
 
 file=$1/"deployment.properties"
-OUTPUT_DIR=$3
+OUTPUT_DIR=$2
+echo "Test output directory is $OUTPUT_DIR"
 declare -A arr_prop
 if [ -f "$file" ]
 then
