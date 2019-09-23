@@ -393,11 +393,6 @@ $script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d results -n "${
 # # Zip results
 # zip -9qmr results-all.zip results/
 
-cd $results_dir
-mkdir -p $OUTPUT_DIR/scenarios
-output_scenarios_dir=$OUTPUT_DIR/scenarios
-cp $stack_results_dir/results.zip $output_scenarios_dir
-unzip $stack_results_dir/results.zip -d $output_scenarios_dir
 # Use following to get all column names:
 echo "Available column names:"
 while read -r line; do echo "\"$line\""; done < <($script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -n "${application_name}" -j $max_jmeter_servers -i -x)
@@ -432,3 +427,9 @@ if [[ $(wc -l <summary-errors.csv) -gt 1 ]]; then
     echo "WARNING: There are errors in measurement results! Please check."
     print_summary summary-errors.csv
 fi
+
+cd $results_dir
+mkdir -p $OUTPUT_DIR/scenarios
+output_scenarios_dir=$OUTPUT_DIR/scenarios
+cp $stack_results_dir/results.zip $output_scenarios_dir
+unzip $stack_results_dir/results.zip -d $output_scenarios_dir
