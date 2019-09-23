@@ -31,7 +31,6 @@ check_command pip
 check_command unzip
 check_command zip
 check_command jq
-#check_command aws
 check_command ts
 
 script_start_time=$(date +%s)
@@ -389,7 +388,8 @@ mkdir $results_dir/scripts
 
 # aws_region="$(aws configure get region)"
 aws_region="us-east-2"
-echo "Current AWS Region: $aws_region"
+aws_region_default="us-east-1"
+echo "Current AWS Region: $aws_region_default"
 
 export AWS_ACCESS_KEY_ID=$user_access_key_id
 export AWS_SECRET_ACCESS_KEY=$user_secret_key
@@ -457,7 +457,7 @@ while read count ec2_instance_type; do
     pricing_json="$results_dir/pricing.json"
     price_in_usd=""
     total_hours=""
-    region_name="${aws_region//-/_}"
+    region_name="${aws_region_default//-/_}"
     if aws pricing get-products --filters \
         Type=TERM_MATCH,Field=ServiceCode,Value=AmazonEC2 \
         Type=TERM_MATCH,Field=InstanceType,Value=$ec2_instance_type \

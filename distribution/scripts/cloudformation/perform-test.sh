@@ -376,56 +376,59 @@ for ((i = 0; i < ${#performance_test_options[@]}; i++)); do
         system_information_files+=("$system_info_file")
     fi
 done
+# echo "Combining system information in following files: ${system_information_files[@]}"
+# Join json files containing system information and create an array
+# jq -s . "${system_information_files[@]}" >all-system-info.json
+# Copy metadata before creating CSV
+# cp cf-test-metadata.json test-metadata.json results
+#Get GCViewer from S3
+gcviewer_jar_path=$results_dir/gcviewer-1.35.jar
+aws s3 cp s3://performance-test-archives/gcviewer-1.35.jar $gcviewer_jar_path
+max_jmeter_servers=1
+echo "Creating summary.csv..."
+# Create warmup summary CSV
+$script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d results -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -w -o summary-warmup.csv
+# # Create measurement summary CSV
+$script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d results -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -o summary.csv
+# # Zip results
+# zip -9qmr results-all.zip results/
+
 cd $results_dir
 mkdir -p $OUTPUT_DIR/scenarios
 output_scenarios_dir=$OUTPUT_DIR/scenarios
 cp $stack_results_dir/results.zip $output_scenarios_dir
 unzip $stack_results_dir/results.zip -d $output_scenarios_dir
-#unzip $output_scenarios_dir/results.zip
-# echo "Combining system information in following files: ${system_information_files[@]}"
-# # Join json files containing system information and create an array
-# jq -s . "${system_information_files[@]}" >all-system-info.json
-# # Copy metadata before creating CSV
-# cp cf-test-metadata.json test-metadata.json results
-# echo "Creating summary.csv..."
-# # Create warmup summary CSV
-# $script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d results -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -w -o summary-warmup.csv
-# # Create measurement summary CSV
-# $script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d results -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -o summary.csv
-# # Zip results
-# zip -9qmr results-all.zip results/
+# Use following to get all column names:
+echo "Available column names:"
+while read -r line; do echo "\"$line\""; done < <($script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -n "${application_name}" -j $max_jmeter_servers -i -x)
+echo -ne "\n\n"
 
-# # Use following to get all column names:
-# echo "Available column names:"
-# while read -r line; do echo "\"$line\""; done < <($script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -n "${application_name}" -j $max_jmeter_servers -i -x)
-# echo -ne "\n\n"
+declare -a column_names
 
-# declare -a column_names
-
-# while read column_name; do
-#     column_names+=("$column_name")
-# done < <(get_columns)
+while read column_name; do
+    column_names+=("$column_name")
+done < <(get_columns)
 
 # echo "Creating summary results markdown file... Using column names: ${column_names[@]}"
 # $script_dir/../jmeter/create-summary-markdown.py --json-parameters parameters=cf-test-metadata.json,parameters=test-metadata.json,instances=all-system-info.json \
 #     --column-names "${column_names[@]}"
 
-# function print_summary() {
-#     cat $1 | cut -d, -f 1-13 | column -t -s,
-# }
+function print_summary() {
+    cat $1 | cut -d, -f 1-13 | column -t -s,
+}
 
-# echo -ne "\n\n"
-# echo "Warmup Results:"
-# print_summary summary-warmup.csv
+echo -ne "\n\n"
+echo "Warmup Results:"
+print_summary summary-warmup.csv
 
-# echo -ne "\n\n"
-# echo "Measurement Results:"
-# print_summary summary.csv
+echo -ne "\n\n"
+echo "Measurement Results:"
+print_summary summary.csv
 
-# awk -F, '{ if ($8 > 0)  print }' summary.csv >summary-errors.csv
+awk -F, '{ if ($8 > 0)  print }' summary.csv >summary-errors.csv
 
-# if [[ $(wc -l <summary-errors.csv) -gt 1 ]]; then
-#     echo -ne "\n\n"
-#     echo "WARNING: There are errors in measurement results! Please check."
-#     print_summary summary-errors.csv
-# fi
+if [[ $(wc -l <summary-errors.csv) -gt 1 ]]; then
+    echo -ne "\n\n"
+    echo "WARNING: There are errors in measurement results! Please check."
+    print_summary summary-errors.csv
+fi
