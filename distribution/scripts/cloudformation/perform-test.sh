@@ -377,6 +377,8 @@ done
 gcviewer_jar_path=$results_dir/gcviewer-1.35.jar
 aws s3 cp s3://performance-test-archives/gcviewer-1.35.jar $gcviewer_jar_path
 max_jmeter_servers=1
+application_name="WSO2 API Manager"
+metrics_file_prefix="apim"
 echo "Creating summary.csv..."
 # Create warmup summary CSV
 $script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d results -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -w -o summary-warmup.csv
