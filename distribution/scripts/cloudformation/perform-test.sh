@@ -381,9 +381,9 @@ application_name="WSO2 API Manager"
 metrics_file_prefix="apim"
 echo "Creating summary.csv..."
 # Create warmup summary CSV
-$script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d results -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -w -o summary-warmup.csv
+$script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d $results_dir/results -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -w -o summary-warmup.csv
 # # Create measurement summary CSV
-$script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d results -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -o summary.csv
+$script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d $results_dir/results -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -o summary.csv
 # # Zip results
 # zip -9qmr results-all.zip results/
 
