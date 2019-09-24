@@ -35,8 +35,9 @@ default_parallel_parameter_option="u"
 parallel_parameter_option="$default_parallel_parameter_option"
 ALLOWED_OPTIONS="ubsm"
 
-file=$1/"deployment.properties"
+INPUT_DIR=$1
 OUTPUT_DIR=$2
+file=$INPUT_DIR/"deployment.properties"
 echo "Test output directory is $OUTPUT_DIR"
 declare -A arr_prop
 if [ -f "$file" ]
@@ -53,21 +54,12 @@ then
     l=${arr_prop[heap_memory_netty]}
     msg=${arr_prop[msg_size]}
     cusr=${arr_prop[con_users]}
-    # for i in "${!arr_prop[@]}"
-    # do
-    #     echo "key :" $i
-    #     echo "value:" ${arr_prop[$i]}
-    # done
-    IFS=',' # hyphen (-) is set as delimiter
-    read -ra message_sizes_array <<< "$msg" # msg is read into an array as tokens separated by IFS
-    for i in "${message_sizes_array[@]}"; do # access each element of array
-        echo "$i"
-    done
-    read -ra concurrent_users_array <<< "$cusr" # cusr is read into an array as tokens separated by IFS
-    for i in "${concurrent_users_array[@]}"; do # access each element of array
-        echo "$i"
-    done
-    IFS=' ' # reset to default value after usage
+    # Get the seperated values on string varables
+    IFS=',' 
+    read -ra message_sizes_array <<< "$msg"
+    read -ra concurrent_users_array <<< "$cusr" 
+    # Reset to default value after usage
+    IFS=' ' 
 
     # while read -r line; do
     #      concurrent_users_array=("${concurrent_users_array[@]}" "$line")
@@ -76,7 +68,7 @@ then
     #      message_sizes_array=("${message_sizes_array[@]}" "$line")
     # done < <(grep msg_size= file2.properties | sed "s/msg_size=//")
 else
-  echo "$file not found."
+  echo "Properties file not found."
   exit 1
 fi
 # m=$(cat $file | jq -r '.heap_memory_app')
