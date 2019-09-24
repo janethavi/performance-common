@@ -48,8 +48,10 @@ stack_name_prefix=""
 key_name=""
 s3_bucket_name=""
 s3_bucket_region=""
+default_distributed_jmeter_deployment=false
+distributed_jmeter_deployment=$default_distributed_jmeter_deployment
 jmeter_client_ec2_instance_type=""
-# jmeter_server_ec2_instance_type=""
+jmeter_server_ec2_instance_type=""
 netty_ec2_instance_type=""
 # GCViewer Jar file to analyze GC logs
 gcviewer_jar_path=""
@@ -184,6 +186,12 @@ then
     stack_name_prefix="${arr_prop[stack_name_prefix]}"
     s3_bucket_name=${arr_prop[s3_bucket_name]}
     s3_bucket_region="${arr_prop[s3_bucket_region]}"
+    if [[ ! -z "${arr_prop[distributed_jmeter_deployment]}" ]]; then
+        distributed_jmeter_deployment=${arr_prop[distributed_jmeter_deployment]}
+    fi
+    if [[ ! -z "${arr_prop[jmeter_server_ec2]}" ]]; then
+        jmeter_server_ec2_instance_type=${arr_prop[jmeter_server_ec2]}
+    fi
     jmeter_client_ec2_instance_type=${arr_prop[jmeter_client_ec2]}
     netty_ec2_instance_type=${arr_prop[netty_ec2]}
     for i in "${!arr_prop[@]}"
@@ -308,6 +316,13 @@ if [[ -z $jmeter_client_ec2_instance_type ]]; then
     exit 1
 fi
 
+if [[ "$distributed_jmeter_deployment" == true ]]; then
+    if [[ -z "$jmeter_server_ec2_instance_type" ]]; then
+        echo "Please enter a Jmeter Instance type"
+        exit 1
+    fi
+fi
+
 # if [[ -z $jmeter_server_ec2_instance_type ]]; then
 #     echo "Please provide the Amazon EC2 Instance Type for JMeter Server."
 #     exit 1
@@ -401,7 +416,9 @@ declare -A test_parameters
 test_parameters[application_name]="$application_name"
 test_parameters[number_of_stacks]="$number_of_stacks"
 test_parameters[jmeter_client_ec2_instance_type]="$jmeter_client_ec2_instance_type"
-# test_parameters[jmeter_server_ec2_instance_type]="$jmeter_server_ec2_instance_type"
+if [[ ! z $jmeter_server_ec2_instance_type ]]; then
+    test_parameters[jmeter_server_ec2_instance_type]="$jmeter_server_ec2_instance_type"
+fi
 test_parameters[netty_ec2_instance_type]="$netty_ec2_instance_type"
 
 if function_exists get_test_metadata; then
@@ -564,25 +581,26 @@ max_jmeter_servers=1
 #         fi
 #     done
 
-#     # Determine JMeter Servers
+# Determine JMeter Servers
 #     max_concurrent_users="0"
 #     for users in ${concurrent_users[@]}; do
 #         if [[ $users -gt $max_concurrent_users ]]; then
 #             max_concurrent_users=$users
 #         fi
 #     done
-#     jmeter_servers=1
-#     if [[ $max_concurrent_users -gt 500 ]]; then
-#         jmeter_servers=2
-#         max_jmeter_servers=2
-#     fi
+jmeter_servers=1
+max_jmeter_servers=1
+if [[ "$distributed_jmeter_deployment" == true ]]; then
+    jmeter_servers=2
+    max_jmeter_servers=2
+fi
 #     jmeter_servers_per_stack+=("$jmeter_servers")
 #     performance_test_options[$i]+=" -n $jmeter_servers"
 #     estimate_command="$script_dir/../jmeter/${run_performance_tests_script_name} -t ${performance_test_options[$i]}"
 #     echo "$(($i + 1)): Estimating total time for the tests in stack $(($i + 1)) with $jmeter_servers JMeter server(s) handling a maximum of $max_concurrent_users concurrent users: $estimate_command"
 #     $estimate_command
 # done
-jmeter_servers=1
+# jmeter_servers=1
 jmeter_servers_per_stack+=("$jmeter_servers")
 echo "Maximum number of JMeter(s): $max_jmeter_servers"
 
@@ -620,7 +638,8 @@ cf_parameters[PerformanceDistributionName]="performance-apim-distribution-0.1.1-
 cf_parameters[JMeterDistributionName]="apache-jmeter-5.1.1.tgz"
 cf_parameters[OracleJDKDistributionName]="jdk-8u161-linux-x64.tar.gz"
 cf_parameters[JMeterClientInstanceType]="$jmeter_client_ec2_instance_type"
-cf_parameters[JMeterServerInstanceType]="t3.micro"
+# cf_parameters[JMeterServerInstanceType]="t3.micro"
+cf_parameters[JMeterServerInstanceType]="$jmeter_server_ec2_instance_type"
 cf_parameters[BackendInstanceType]="$netty_ec2_instance_type"
 
 if function_exists get_cf_parameters; then
@@ -677,7 +696,7 @@ for ((i = 0; i < ${#performance_test_options[@]}; i++)); do
     echo "Validating stack: $stack_name: $cf_template"
     aws cloudformation validate-template --template-body file://$cf_template
     if [[ $jmeter_servers -eq 1 ]]; then
-        cf_parameters[JMeterClientInstanceType]="t3.micro"
+        cf_parameters[JMeterClientInstanceType]="$jmeter_server_ec2_instance_type"
     fi
 
     cf_parameters_str=""
