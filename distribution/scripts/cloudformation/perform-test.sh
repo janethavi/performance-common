@@ -143,6 +143,12 @@ declare -a performance_test_options
     performance_test_options+=("${run_performance_tests_options[*]}")
 # fi
 
+current_dir=$(pwd)
+data_bucket=$current_dir/../../../../../data-bucket
+results_dir=$(cat $data_bucket/results_dir.json | jq -r '.results_dir')
+
+distributed_jmeter_deployment=(cat $results_dir/cf-test-metadata.json | jq -r '.distributed_jmeter_deployment')
+
 # Allow to change the script name
 run_performance_tests_script_name=${run_performance_tests_script_name:-run-performance-tests.sh}
 set -x
@@ -152,11 +158,13 @@ set -x
 # Estimating this script will also validate the options. It's important to validate options before creating the stack.
 # $estimate_command
 echo "Estimating total time for performance tests: "
-$script_dir/../jmeter/run-performance-tests.sh -t -m $m -s $s -d $d -w $w -j $j -k $k -l $l -b "${message_sizes_array[*]}"  -u "${concurrent_users_array[*]}"
-
-current_dir=$(pwd)
-data_bucket=$current_dir/../../../../../data-bucket
-results_dir=$(cat $data_bucket/results_dir.json | jq -r '.results_dir')
+if [[ $distributed_jmeter_deployment]]; then
+    echo "Calculating the estimated time with distributed jmeter deployment "
+    $script_dir/../jmeter/run-performance-tests.sh -t -m $m -s $s -d $d -w $w -j $j -k $k -l $l -n 2 -b "${message_sizes_array[*]}"  -u "${concurrent_users_array[*]}"
+else
+    echo "Calculating the estimated time without distributed jmeter deployment "
+    $script_dir/../jmeter/run-performance-tests.sh -t -m $m -s $s -d $d -w $w -j $j -k $k -l $l -b "${message_sizes_array[*]}"  -u "${concurrent_users_array[*]}"
+fi
 
 # Save test metadata
 # mv test-metadata.json $results_dir
@@ -319,8 +327,13 @@ function run_perf_tests_in_stack() {
     # echo "Running performance tests: $run_remote_tests_command"
     # Handle any error and let the script continue.
     # $run_remote_tests_command || echo "Remote test ssh command failed: $run_remote_tests_command"
-    $ssh_command_prefix "./jmeter/${run_performance_tests_script_name} -m $m -s $s -d $d -w $w -j $j -k $k -l $l -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
-
+    if [[ $distributed_jmeter_deployment ]]; then
+        echo "Running the performace test with distributed jmeter deployment"
+        $ssh_command_prefix "./jmeter/${run_performance_tests_script_name} -m $m -s $s -d $d -w $w -j $j -n 2 -k $k -l $l -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
+    else
+        echo "Running the performace test without distributed jmeter deployment"
+        $ssh_command_prefix "./jmeter/${run_performance_tests_script_name} -m $m -s $s -d $d -w $w -j $j -k $k -l $l -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
+    fi
     echo "Downloading results-without-jtls.zip"
     # Download results-without-jtls.zip
     scp -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip:results-without-jtls.zip $stack_results_dir

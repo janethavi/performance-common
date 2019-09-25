@@ -420,6 +420,7 @@ if ! [[ -z $jmeter_server_ec2_instance_type ]]; then
     test_parameters[jmeter_server_ec2_instance_type]="$jmeter_server_ec2_instance_type"
 fi
 test_parameters[netty_ec2_instance_type]="$netty_ec2_instance_type"
+test_parameters[distributed_jmeter_deployment]="$distributed_jmeter_deployment"
 
 if function_exists get_test_metadata; then
     while IFS='=' read -r key value; do
