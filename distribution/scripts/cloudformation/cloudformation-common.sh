@@ -189,7 +189,7 @@ then
     if [[ ! -z "${arr_prop[distributed_jmeter_deployment]}" ]]; then
         distributed_jmeter_deployment=${arr_prop[distributed_jmeter_deployment]}
     fi
-    if [[ ! -z "${arr_prop[jmeter_server_ec2]}" ]]; then
+    if [[ $distributed_jmeter_deployment ]]; then
         jmeter_server_ec2_instance_type=${arr_prop[jmeter_server_ec2]}
     fi
     jmeter_client_ec2_instance_type=${arr_prop[jmeter_client_ec2]}
@@ -317,7 +317,7 @@ if [[ -z $jmeter_client_ec2_instance_type ]]; then
 fi
 
 if [[ "$distributed_jmeter_deployment" == true ]]; then
-    if [[ -z "$jmeter_server_ec2_instance_type" ]]; then
+    if [[ "$jmeter_server_ec2_instance_type" == "" ]]; then
         echo "Please enter a Jmeter Server Instance type"
         exit 1
     fi

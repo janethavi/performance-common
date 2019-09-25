@@ -147,7 +147,7 @@ current_dir=$(pwd)
 data_bucket=$current_dir/../../../../../data-bucket
 results_dir=$(cat $data_bucket/results_dir.json | jq -r '.results_dir')
 
-distributed_jmeter_deployment=(cat $results_dir/cf-test-metadata.json | jq -r '.distributed_jmeter_deployment')
+distributed_jmeter_deployment=$(cat $results_dir/cf-test-metadata.json | jq -r '.distributed_jmeter_deployment')
 
 # Allow to change the script name
 run_performance_tests_script_name=${run_performance_tests_script_name:-run-performance-tests.sh}
