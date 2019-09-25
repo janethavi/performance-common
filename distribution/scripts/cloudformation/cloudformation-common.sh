@@ -317,8 +317,8 @@ if [[ -z $jmeter_client_ec2_instance_type ]]; then
 fi
 
 if [[ "$distributed_jmeter_deployment" == true ]]; then
-    if [[ -z "$jmeter_server_ec2_instance_type" ]]; then
-        echo "Please enter a Jmeter Instance type"
+    if [[ ! -z "$jmeter_server_ec2_instance_type" ]]; then
+        echo "Please enter a Jmeter Server Instance type"
         exit 1
     fi
 fi
@@ -416,7 +416,7 @@ declare -A test_parameters
 test_parameters[application_name]="$application_name"
 test_parameters[number_of_stacks]="$number_of_stacks"
 test_parameters[jmeter_client_ec2_instance_type]="$jmeter_client_ec2_instance_type"
-if [[ ! z $jmeter_server_ec2_instance_type ]]; then
+if ! [[ -z $jmeter_server_ec2_instance_type ]]; then
     test_parameters[jmeter_server_ec2_instance_type]="$jmeter_server_ec2_instance_type"
 fi
 test_parameters[netty_ec2_instance_type]="$netty_ec2_instance_type"
