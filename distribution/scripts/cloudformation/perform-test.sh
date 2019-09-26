@@ -158,7 +158,7 @@ set -x
 # Estimating this script will also validate the options. It's important to validate options before creating the stack.
 # $estimate_command
 echo "Estimating total time for performance tests: "
-if [[ $distributed_jmeter_deployment]]; then
+if [ $distributed_jmeter_deployment ]; then
     echo "Calculating the estimated time with distributed jmeter deployment "
     $script_dir/../jmeter/run-performance-tests.sh -t -m $m -s $s -d $d -w $w -j $j -k $k -l $l -n 2 -b "${message_sizes_array[*]}"  -u "${concurrent_users_array[*]}"
 else
