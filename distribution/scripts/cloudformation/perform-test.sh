@@ -440,3 +440,11 @@ mkdir -p $OUTPUT_DIR/scenarios
 output_scenarios_dir=$OUTPUT_DIR/scenarios
 cp $stack_results_dir/results.zip $output_scenarios_dir
 unzip $stack_results_dir/results.zip -d $output_scenarios_dir
+unzip_dir=$output_scenarios_dir/results/
+
+# Find jtl.zip and unzip them to the same dir
+for zip_file in $(find $unzip_dir -iname '*.zip'); do
+	zip_dir=$(dirname "${zip_file}")
+	unzip -o $zip_file -d $zip_dir
+done
+chmod -R 777 $unzip_dir
