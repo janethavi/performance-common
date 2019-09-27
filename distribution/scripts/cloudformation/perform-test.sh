@@ -444,6 +444,6 @@ unzip_dir=$output_scenarios_dir/results
 # Find jtl.zip and unzip them to the same dir
 for zip_file in $(find $unzip_dir -iname '*.zip'); do
 	zip_dir=$(dirname "${zip_file}")
-	unzip -o $zip_file -d $zip_dir
+	unzip -d $zip_dir $zip_file
 done
 chmod -R 777 $unzip_dir
