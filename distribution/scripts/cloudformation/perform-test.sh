@@ -388,7 +388,11 @@ done
 #Get GCViewer from S3
 gcviewer_jar_path=$results_dir/gcviewer-1.35.jar
 aws s3 cp s3://performance-test-archives/gcviewer-1.35.jar $gcviewer_jar_path
-max_jmeter_servers=1
+if [ $distributed_jmeter_deployment ]; then
+    max_jmeter_servers=2
+else
+    max_jmeter_servers=1
+fi
 application_name="WSO2 API Manager"
 metrics_file_prefix="apim"
 echo "Creating summary.csv..."
