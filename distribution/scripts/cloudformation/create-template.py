@@ -19,7 +19,7 @@
 # ----------------------------------------------------------------------------
 # Create AWS CloudFormation template
 # ----------------------------------------------------------------------------
-source virtualenv/bin/
+source venv/bin/activate
 import argparse
 import os
 
