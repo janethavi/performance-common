@@ -860,7 +860,7 @@ jq -n --arg results_dir $results_dir '{"results_dir":"\($results_dir)"}' >result
 download_stack_files ${stack_id} ${stack_name} ${stack_results_dir}
 echo "Copying working directory to data bucket.."
 perf_dir=$script_dir/../../target
-pwd
+#pwd
 tar -zcvf performance-apim-distribution.tar.gz $perf_dir
 perf_dist=$perf_dir/performance-apim-distribution.tar.gz
 #printf "Stack creation time: %s\n" "$(format_time $(measure_time $stack_create_start_time))"

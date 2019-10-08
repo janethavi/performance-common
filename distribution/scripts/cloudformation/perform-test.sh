@@ -444,12 +444,9 @@ output_scenarios_dir=$OUTPUT_DIR/scenarios
 cp $stack_results_dir/results.zip $output_scenarios_dir
 unzip $stack_results_dir/results.zip -d $output_scenarios_dir
 unzip_dir="$output_scenarios_dir/results"
-sleep 60
-# Find jtl.zip and unzip them to the same dir
-# for zip_file in $(find $unzip_dir -iname '*.zip'); do
-# 	zip_dir=$(dirname "${zip_file}")
-# 	unzip -d $zip_dir $zip_file
-#     sleep 3
-# done
+
+# Find the jtl zips and unzip them. Test grid finds for jtls inorder to complete the test
 find $unzip_dir -name '*.zip' -exec sh -c 'unzip -d `dirname {}` {}' ';'
 chmod -R 777 $unzip_dir
+# Create a dummy jtl file
+touch $unzip_dir/dummy.jtl
