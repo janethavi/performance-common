@@ -24,10 +24,6 @@ script_dir=$(dirname "$0")
 script_dir=$(realpath $script_dir)
 . $script_dir/../common/common.sh
 
-# declare -a concurrent_users_array
-
-# declare -a message_sizes_array
-
 key_file=""
 default_number_of_stacks=1
 number_of_stacks=$default_number_of_stacks
@@ -37,10 +33,10 @@ ALLOWED_OPTIONS="ubsm"
 
 INPUT_DIR=$1
 OUTPUT_DIR=$2
-file=$INPUT_DIR/"deployment.properties"
+deploymentPropFile=$INPUT_DIR/"deployment.properties"
 echo "Test output directory is $OUTPUT_DIR"
 declare -A arr_prop
-if [ -f "$file" ]
+if [ -f "$deploymentPropFile" ]
 then
     while IFS='=' read -r key value; do
         arr_prop["$key"]="$value"
@@ -54,10 +50,17 @@ then
     l=${arr_prop[heap_memory_netty]}
     msg=${arr_prop[msg_size]}
     cusr=${arr_prop[con_users]}
+    numJmeterServers=${arr_prop[NumberOfJmeterServers]}
+    mysqlHost=${arr_prop[RDSIP]}
+    mysql_uname=${arr_prop[DBUsername]}
+    mysql_password=${arr_prop[DBPassword]}
+    APIMEndpoint=${arr_prop[APIMGatewayHTTPEndpoint]}
+    jmeter_client_ip=${arr_prop[JMeterClient]}
+    netty_backend_ip=${arr_prop[]}
     # Get the seperated values on string varables
     IFS=',' 
     read -ra message_sizes_array <<< "$msg"
-    read -ra concurrent_users_array <<< "$cusr" 
+    read -ra concurrent_users_array <<< "$cusr"
     # Reset to default value after usage
     IFS=' ' 
 
@@ -68,7 +71,7 @@ then
     #      message_sizes_array=("${message_sizes_array[@]}" "$line")
     # done < <(grep msg_size= file2.properties | sed "s/msg_size=//")
 else
-  echo "Properties file not found."
+  echo "Error: deployment.properties file not found."
   exit 1
 fi
 # m=$(cat $file | jq -r '.heap_memory_app')
@@ -85,11 +88,11 @@ fi
 # [[ $concurrent_users_array ]] && export A_MY_ARRAY=$(declare -p concurrent_users_array)
 # [[ $message_sizes_array ]] && export B_MY_ARRAY=$(declare -p message_sizes_array)
 
-run_performance_tests_options=("$@")
+# run_performance_tests_options=("$@")
 
-echo "${run_performance_tests_options[@]}"
+# echo "${run_performance_tests_options[@]}"
 
-declare -a performance_test_options
+# declare -a performance_test_options
 
 # if [[ $number_of_stacks -gt 1 ]]; then
 #     # Read options given to the performance test script. Refer jmeter/perf-test-common.sh
@@ -140,15 +143,36 @@ declare -a performance_test_options
 #         performance_test_options+=("${options_list} ${run_performance_tests_remaining_options[*]}")
 #     done
 # else
-    performance_test_options+=("${run_performance_tests_options[*]}")
+    # performance_test_options+=("${run_performance_tests_options[*]}")
 # fi
 
-current_dir=$(pwd)
-data_bucket=$current_dir/../../../../../data-bucket
-results_dir=$(cat $data_bucket/results_dir.json | jq -r '.results_dir')
+results_dir="Results-$(date +%Y%m%d%H%M%S)"
+mkdir $results_dir
+aws s3 cp s3://performance-test-archives/janeth-key.pem $results_dir/janeth-key.pem
+key_file=$results_dir/janeth-key.pem
+key_file=$(realpath $key_file)
+chmod 400 $key_file
 
-distributed_jmeter_deployment=$(cat $results_dir/cf-test-metadata.json | jq -r '.distributed_jmeter_deployment')
 
+# Create APIS
+. $script_dir/../setup/setup-apis.sh -n $netty_backend_ip -a $APIMEndpoint -m $mysqlHost -u $mysql_uname -p $mysql_password -o "root"
+
+
+declare -a apim_ips
+# Create APIs
+
+# current_dir=$(pwd)
+# data_bucket=$current_dir/../../../../../data-bucket
+# results_dir=$(cat $data_bucket/results_dir.json | jq -r '.results_dir')
+# results_dir="Results-$(date +%Y%m%d%H%M%S)"
+# mkdir $results_dir
+
+if [ $numJmeterServers -gt 0 ]; then
+#distributed_jmeter_deployment=$(cat $results_dir/cf-test-metadata.json | jq -r '.distributed_jmeter_deployment')
+    distributed_jmeter_deployment=true
+else
+    distributed_jmeter_deployment=false
+fi
 # Allow to change the script name
 run_performance_tests_script_name=${run_performance_tests_script_name:-run-performance-tests.sh}
 # estimate_command="$script_dir/../jmeter/${run_performance_tests_script_name} -t -m $m -s $s -d $d -w $w -j $j -k $k -l $l -u '${concurrent_users_array[@]}' -b '50 1024' "
@@ -169,10 +193,6 @@ fi
 # mv test-metadata.json $results_dir
 # mv test-duration.json $results_dir
 
-aws s3 cp s3://performance-test-archives/janeth-key.pem $results_dir/janeth-key.pem
-key_file=$results_dir/janeth-key.pem
-key_file=$(realpath $key_file)
-chmod 400 $key_file
 
 function download_files() {
     local stack_id="$1"
@@ -215,74 +235,74 @@ function download_files() {
     fi
 }
 
-function delete_stack() {
-    local stack_id="$1"
-    local stack_delete_start_time=$(date +%s)
-    echo "Deleting the stack: $stack_id"
-    aws cloudformation delete-stack --stack-name $stack_id
+# function delete_stack() {
+#     local stack_id="$1"
+#     local stack_delete_start_time=$(date +%s)
+#     echo "Deleting the stack: $stack_id"
+#     aws cloudformation delete-stack --stack-name $stack_id
 
-    echo "Polling till the stack deletion completes..."
-    aws cloudformation wait stack-delete-complete --stack-name $stack_id
-    printf "Stack ($stack_id) deletion time: %s\n" "$(format_time $(measure_time $stack_delete_start_time))"
-}
+#     echo "Polling till the stack deletion completes..."
+#     aws cloudformation wait stack-delete-complete --stack-name $stack_id
+#     printf "Stack ($stack_id) deletion time: %s\n" "$(format_time $(measure_time $stack_delete_start_time))"
+# }
 
-function save_logs_and_delete_stack() {
-    local stack_id="$1"
-    local stack_name="$2"
-    local stack_results_dir="$3"
-    # Get stack events
-    local stack_events_json=$stack_results_dir/stack-events.json
-    echo "Saving $stack_name stack events to $stack_events_json"
-    aws cloudformation describe-stack-events --stack-name $stack_id --no-paginate --output json >$stack_events_json
-    # Check whether there are any failed events
-    cat $stack_events_json | jq '.StackEvents | .[] | select ( .ResourceStatus == "CREATE_FAILED" )'
+# function save_logs_and_delete_stack() {
+#     local stack_id="$1"
+#     local stack_name="$2"
+#     local stack_results_dir="$3"
+#     # Get stack events
+#     local stack_events_json=$stack_results_dir/stack-events.json
+#     echo "Saving $stack_name stack events to $stack_events_json"
+#     aws cloudformation describe-stack-events --stack-name $stack_id --no-paginate --output json >$stack_events_json
+#     # Check whether there are any failed events
+#     cat $stack_events_json | jq '.StackEvents | .[] | select ( .ResourceStatus == "CREATE_FAILED" )'
 
-    # Download log events
-    local log_group_name="${stack_name}-CloudFormationLogs"
-    local log_streams_json=$stack_results_dir/log-streams.json
-    if aws logs describe-log-streams --log-group-name $log_group_name --output json >$log_streams_json; then
-        local log_events_file=$stack_results_dir/log-events.log
-        for log_stream in $(cat $log_streams_json | jq -r '.logStreams | .[] | .logStreamName'); do
-            echo "[$log_group_name] Downloading log events from stream: $log_stream..."
-            echo "#### The beginning of log events from $log_stream" >>$log_events_file
-            aws logs get-log-events --log-group-name $log_group_name --log-stream-name $log_stream --output text >>$log_events_file
-            echo -ne "\n\n#### The end of log events from $log_stream\n\n" >>$log_events_file
-        done
-    else
-        echo "WARNING: There was an error getting log streams from the log group $log_group_name. Check whether AWS CloudWatch logs are enabled."
-    fi
+#     # Download log events
+#     local log_group_name="${stack_name}-CloudFormationLogs"
+#     local log_streams_json=$stack_results_dir/log-streams.json
+#     if aws logs describe-log-streams --log-group-name $log_group_name --output json >$log_streams_json; then
+#         local log_events_file=$stack_results_dir/log-events.log
+#         for log_stream in $(cat $log_streams_json | jq -r '.logStreams | .[] | .logStreamName'); do
+#             echo "[$log_group_name] Downloading log events from stream: $log_stream..."
+#             echo "#### The beginning of log events from $log_stream" >>$log_events_file
+#             aws logs get-log-events --log-group-name $log_group_name --log-stream-name $log_stream --output text >>$log_events_file
+#             echo -ne "\n\n#### The end of log events from $log_stream\n\n" >>$log_events_file
+#         done
+#     else
+#         echo "WARNING: There was an error getting log streams from the log group $log_group_name. Check whether AWS CloudWatch logs are enabled."
+#     fi
 
-    # Download files
-    download_files ${stack_id} ${stack_name} ${stack_results_dir}
+#     # Download files
+#     download_files ${stack_id} ${stack_name} ${stack_results_dir}
 
-    if [ "$SUSPEND" = true ]; then
-        echo "SUSPEND is true, holding the deletion of stack: $stack_id"
-        if ! sleep infinity; then
-            echo "Sleep terminated! Proceeding to delete the stack: $stack_id"
-        fi
-    fi
+#     if [ "$SUSPEND" = true ]; then
+#         echo "SUSPEND is true, holding the deletion of stack: $stack_id"
+#         if ! sleep infinity; then
+#             echo "Sleep terminated! Proceeding to delete the stack: $stack_id"
+#         fi
+#     fi
 
-    #delete_stack $stack_id
-}
+#     #delete_stack $stack_id
+# }
 
-function wait_and_download_files() {
-    local stack_id="$1"
-    local stack_name="$2"
-    local stack_results_dir="$3"
-    local wait_time="$4"
-    sleep $wait_time
-    local suffix="$(date +%Y%m%d%H%M%S)"
-    local stack_files_dir="$stack_results_dir/stack-files"
-    mkdir -p $stack_files_dir
-    local stack_status_json=$stack_files_dir/stack-status-$suffix.json
-    echo "Saving $stack_name stack status to $stack_status_json"
-    aws cloudformation describe-stacks --stack-name $stack_id --no-paginate --output json >$stack_status_json
-    local stack_status="$(jq -r '.Stacks[] | .StackStatus' $stack_status_json || echo "")"
-    echo "Current status of $stack_name stack is $stack_status"
-    if [[ "$stack_status" != "CREATE_COMPLETE" ]]; then
-        download_files ${stack_id} ${stack_name} ${stack_results_dir}
-    fi
-}
+# function wait_and_download_files() {
+#     local stack_id="$1"
+#     local stack_name="$2"
+#     local stack_results_dir="$3"
+#     local wait_time="$4"
+#     sleep $wait_time
+#     local suffix="$(date +%Y%m%d%H%M%S)"
+#     local stack_files_dir="$stack_results_dir/stack-files"
+#     mkdir -p $stack_files_dir
+#     local stack_status_json=$stack_files_dir/stack-status-$suffix.json
+#     echo "Saving $stack_name stack status to $stack_status_json"
+#     aws cloudformation describe-stacks --stack-name $stack_id --no-paginate --output json >$stack_status_json
+#     local stack_status="$(jq -r '.Stacks[] | .StackStatus' $stack_status_json || echo "")"
+#     echo "Current status of $stack_name stack is $stack_status"
+#     if [[ "$stack_status" != "CREATE_COMPLETE" ]]; then
+#         download_files ${stack_id} ${stack_name} ${stack_results_dir}
+#     fi
+# }
 
 function run_perf_tests_in_stack() {
     local index=$1
@@ -294,9 +314,9 @@ function run_perf_tests_in_stack() {
     printf "Running performance tests on '%s' stack.\n" "$stack_name"
 
     # Download files periodically
-    for wait_time in $(seq 5 5 30); do
-        wait_and_download_files ${stack_id} ${stack_name} ${stack_results_dir} ${wait_time}m &
-    done
+    # for wait_time in $(seq 5 5 30); do
+    #     wait_and_download_files ${stack_id} ${stack_name} ${stack_results_dir} ${wait_time}m &
+    # done
     # Sleep for sometime before waiting
     # This is required since the 'aws cloudformation wait stack-create-complete' will exit with a
     # return code of 255 after 120 failed checks. The command polls every 30 seconds, which means that the
@@ -317,7 +337,7 @@ function run_perf_tests_in_stack() {
     # echo "AWS EC2 instances: "
     # cat $stack_resources_json | jq -r '.StackResources | .[] | select ( .ResourceType == "AWS::EC2::Instance" ) | .LogicalResourceId'
     echo "Getting JMeter Client Public IP..."
-    jmeter_client_ip="$(aws cloudformation describe-stacks --stack-name $stack_id --query 'Stacks[0].Outputs[?OutputKey==`JMeterClientPublicIP`].OutputValue' --output text)"
+    # jmeter_client_ip="$(aws cloudformation describe-stacks --stack-name $stack_id --query 'Stacks[0].Outputs[?OutputKey==`JMeterClientPublicIP`].OutputValue' --output text)"
     echo "JMeter Client Public IP: $jmeter_client_ip"
 
     ssh_command_prefix="ssh -i $key_file -o "StrictHostKeyChecking=no" -T ubuntu@$jmeter_client_ip"
