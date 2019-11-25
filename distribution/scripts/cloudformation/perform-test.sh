@@ -56,7 +56,7 @@ then
     mysql_password=${arr_prop[DBPassword]}
     APIMEndpoint=${arr_prop[APIMGatewayHTTPEndpoint]}
     jmeter_client_ip=${arr_prop[JMeterClient]}
-    netty_backend_ip=${arr_prop[]}
+    netty_backend_ip=${arr_prop[NettyBackend]}
     # Get the seperated values on string varables
     IFS=',' 
     read -ra message_sizes_array <<< "$msg"
