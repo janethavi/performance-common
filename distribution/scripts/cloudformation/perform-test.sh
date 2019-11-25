@@ -40,7 +40,7 @@ if [ -f "$deploymentPropFile" ]
 then
     while IFS='=' read -r key value; do
         arr_prop["$key"]="$value"
-    done < $file
+    done < $deploymentPropFile
     m=${arr_prop[heap_memory_app]}
     s=${arr_prop[backend_sleep]}
     d=${arr_prop[test_duration]}
