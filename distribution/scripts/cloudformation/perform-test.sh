@@ -151,7 +151,7 @@ mkdir $results_dir
 aws s3 cp s3://performance-test-archives/janeth-key.pem $results_dir/janeth-key.pem
 key_file=$results_dir/janeth-key.pem
 key_file=$(realpath $key_file)
-chmod 400 $key_file
+sudo chmod 400 $key_file
 
 
 # Create APIS
