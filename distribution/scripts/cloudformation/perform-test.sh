@@ -155,7 +155,7 @@ sudo chmod 400 $key_file
 
 
 # Create APIS
-. $script_dir/../setup/setup-apis.sh -n $netty_backend_ip -a $APIMEndpoint -m $mysqlHost -u $mysql_uname -p $mysql_password -o "root"
+sudo bash $script_dir/../setup/setup-apis.sh -n $netty_backend_ip -a $APIMEndpoint -m $mysqlHost -u $mysql_uname -p $mysql_password -o "root"
 
 
 declare -a apim_ips
