@@ -167,7 +167,7 @@ declare -a apim_ips
 # results_dir="Results-$(date +%Y%m%d%H%M%S)"
 # mkdir $results_dir
 
-if [ $numJmeterServers -gt 0 ]; then
+if [[ $numJmeterServers -gt 0 ]]; then
 #distributed_jmeter_deployment=$(cat $results_dir/cf-test-metadata.json | jq -r '.distributed_jmeter_deployment')
     distributed_jmeter_deployment=true
 else
