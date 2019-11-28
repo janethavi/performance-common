@@ -51,10 +51,10 @@ then
     msg=${arr_prop[msg_size]}
     cusr=${arr_prop[con_users]}
     numJmeterServers=${arr_prop[NumberOfJmeterServers]}
-    mysqlHost=${arr_prop[RDSIP]}
+    mysqlHost=${arr_prop[RDSHost]}
     mysql_uname=${arr_prop[DBUsername]}
     mysql_password=${arr_prop[DBPassword]}
-    APIMEndpoint=${arr_prop[APIMGatewayHTTPEndpoint]}
+    APIMEndpoint=${arr_prop[GatewayHttpsUrl]}
     jmeter_client_ip=${arr_prop[JMeterClient]}
     netty_backend_ip=${arr_prop[NettyBackend]}
     # Get the seperated values on string varables
@@ -181,7 +181,7 @@ run_performance_tests_script_name=${run_performance_tests_script_name:-run-perfo
 # Estimating this script will also validate the options. It's important to validate options before creating the stack.
 # $estimate_command
 echo "Estimating total time for performance tests: "
-if [ $distributed_jmeter_deployment ]; then
+if [[ $distributed_jmeter_deployment ]]; then
     echo "Calculating the estimated time with distributed jmeter deployment "
     $script_dir/../jmeter/run-performance-tests.sh -t -m $m -s $s -d $d -w $w -j $j -k $k -l $l -n 2 -b "${message_sizes_array[*]}"  -u "${concurrent_users_array[*]}"
 else
