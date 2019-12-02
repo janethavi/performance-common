@@ -155,7 +155,8 @@ sudo chmod 400 $key_file
 
 
 # Create APIS
-sudo bash $script_dir/../setup/setup-apis.sh -n $netty_backend_ip -a $APIMEndpoint -m $mysqlHost -u $mysql_uname -p $mysql_password -o "root"
+ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip sudo bash $script_dir/../setup/setup-apis.sh -n $netty_backend_ip \
+-a $APIMEndpoint -m $mysqlHost -u $mysql_uname -p $mysql_password -o "root"
 
 
 declare -a apim_ips
