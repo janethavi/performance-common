@@ -31,38 +31,38 @@ default_parallel_parameter_option="u"
 parallel_parameter_option="$default_parallel_parameter_option"
 ALLOWED_OPTIONS="ubsm"
 
-INPUT_DIR=$1
-OUTPUT_DIR=$2
-deploymentPropFile=$INPUT_DIR/"deployment.properties"
-echo "Test output directory is $OUTPUT_DIR"
-declare -A arr_prop
-if [ -f "$deploymentPropFile" ]
+input_dir=$1
+output_dir=$2
+deployment_prop_file=$input_dir/"deployment.properties"
+echo "Test output directory is $output_dir"
+declare -A propArray
+if [ -f "$deployment_prop_file" ]
 then
     while IFS='=' read -r key value; do
-        arr_prop["$key"]="$value"
-    done < $deploymentPropFile
-    m=${arr_prop[heap_memory_app]}
-    s=${arr_prop[backend_sleep]}
-    d=${arr_prop[test_duration]}
-    w=${arr_prop[warmup_time]}
-    j=${arr_prop[heap_memory_jmeter_s]}
-    k=${arr_prop[heap_memory_jmeter_c]}
-    l=${arr_prop[heap_memory_netty]}
-    msg=${arr_prop[msg_size]}
-    cusr=${arr_prop[con_users]}
-    numJmeterServers=${arr_prop[NumberOfJmeterServers]}
-    mysqlHost=${arr_prop[RDSHost]}
-    mysql_uname=${arr_prop[DBUsername]}
-    mysql_password=${arr_prop[DBPassword]}
-    APIMEndpoint=${arr_prop[GatewayHttpsUrl]}
-    jmeter_client_ip=${arr_prop[JMeterClient]}
-    netty_backend_ip=${arr_prop[NettyBackend]}
+        propArray["$key"]="$value"
+    done < $deployment_prop_file
+    application_heap=${propArray[heap_memory_app]}
+    backend_sleep_time=${propArray[backend_sleep]}
+    test_duration=${propArray[test_duration]}
+    warm_up_time=${propArray[warmup_time]}
+    jmeter_server_heap=${propArray[heap_memory_jmeter_s]}
+    jmeter_client_heap=${propArray[heap_memory_jmeter_c]}
+    netty_heap=${propArray[heap_memory_netty]}
+    message_size=${propArray[msg_size]}
+    concurrent_users=${propArray[con_users]}
+    num_jmeter_servers=${propArray[NumberOfJmeterServers]}
+    mysql_host=${propArray[RDSHost]}
+    mysql_username=${propArray[DBUsername]}
+    mysql_password=${propArray[DBPassword]}
+    apim_endpoint=${propArray[GatewayHttpsUrl]}
+    jmeter_client_ip=${propArray[JMeterClient]}
+    netty_backend_ip=${propArray[NettyBackend]}
     # Get the seperated values on string varables
     IFS=',' 
-    read -ra message_sizes_array <<< "$msg"
-    read -ra concurrent_users_array <<< "$cusr"
+    read -ra message_sizes_array <<< "$message_size"
+    read -ra concurrent_users_array <<< "$concurrent_users"
     # Reset to default value after usage
-    IFS=' ' 
+    IFS=' '
 
     # while read -r line; do
     #      concurrent_users_array=("${concurrent_users_array[@]}" "$line")
@@ -74,13 +74,13 @@ else
   echo "Error: deployment.properties file not found."
   exit 1
 fi
-# m=$(cat $file | jq -r '.heap_memory_app')
+# application_heap=$(cat $file | jq -r '.heap_memory_aec2-18-223-106-78.us-east-2.compute.amazonaws.compp')
 # s=$(cat $file | jq -r '.backend_sleep')
-# d=$(cat $file | jq -r '.test_duration')
-# w=$(cat $file | jq -r '.warmup_time')
-# j=$(cat $file | jq -r '.heap_memory_jmeter_s')
-# k=$(cat $file | jq -r '.heap_memory_jmeter_c')
-# l=$(cat $file | jq -r '.heap_memory_netty')
+# test_duration=$(cat $file | jq -r '.test_duration')
+# warm_up_time=$(cat $file | jq -r '.warmup_time')
+# jmeter_server_heap=$(cat $file | jq -r '.heap_memory_jmeter_s')
+# jmeter_client_heap=$(cat $file | jq -r '.heap_memory_jmeter_c')
+# netty_heap=$(cat $file | jq -r '.heap_memory_netty')
 # concurrent_users_array=$(cat $file | jq -r '.con_users[]')
 # message_sizes_array=$(cat $file | jq -r '.msg_size[]')
 
@@ -155,8 +155,8 @@ sudo chmod 400 $key_file
 
 
 # Create APIS
-ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip sudo bash $script_dir/../setup/setup-apis.sh -n $netty_backend_ip \
--a $APIMEndpoint -m $mysqlHost -u $mysql_uname -p $mysql_password -o "root"
+ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip sudo bash /home/ubuntu/Perf_dist/setup/setup-apis.sh -n $netty_backend_ip \
+-a $apim_endpoint -m $mysql_host -u $mysql_username -p $mysql_password -o "root"
 
 
 declare -a apim_ips
@@ -168,7 +168,7 @@ declare -a apim_ips
 # results_dir="Results-$(date +%Y%m%d%H%M%S)"
 # mkdir $results_dir
 
-if [[ $numJmeterServers -gt 0 ]]; then
+if [[ $num_jmeter_servers -gt 0 ]]; then
 #distributed_jmeter_deployment=$(cat $results_dir/cf-test-metadata.json | jq -r '.distributed_jmeter_deployment')
     distributed_jmeter_deployment=true
 else
@@ -176,7 +176,7 @@ else
 fi
 # Allow to change the script name
 run_performance_tests_script_name=${run_performance_tests_script_name:-run-performance-tests.sh}
-# estimate_command="$script_dir/../jmeter/${run_performance_tests_script_name} -t -m $m -s $s -d $d -w $w -j $j -k $k -l $l -u '${concurrent_users_array[@]}' -b '50 1024' "
+# estimate_command="$script_dir/../jmeter/${run_performance_tests_script_name} -t -m $application_heap -s $backend_sleep_time -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -u '${concurrent_users_array[@]}' -b '50 1024' "
 #estimate_command="$script_dir/../jmeter/${run_performance_tests_script_name}"
 # echo "Estimating total time for performance tests: $estimate_command"
 # Estimating this script will also validate the options. It's important to validate options before creating the stack.
@@ -184,10 +184,12 @@ run_performance_tests_script_name=${run_performance_tests_script_name:-run-perfo
 echo "Estimating total time for performance tests: "
 if [[ $distributed_jmeter_deployment ]]; then
     echo "Calculating the estimated time with distributed jmeter deployment "
-    $script_dir/../jmeter/run-performance-tests.sh -t -m $m -s $s -d $d -w $w -j $j -k $k -l $l -n 2 -b "${message_sizes_array[*]}"  -u "${concurrent_users_array[*]}"
+    $script_dir/../jmeter/run-performance-tests.sh -t -m $application_heap -s $backend_sleep_time -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -n 2 -b "${message_sizes_array[*]}" \
+     -u "${concurrent_users_array[*]}"
 else
     echo "Calculating the estimated time without distributed jmeter deployment "
-    $script_dir/../jmeter/run-performance-tests.sh -t -m $m -s $s -d $d -w $w -j $j -k $k -l $l -b "${message_sizes_array[*]}"  -u "${concurrent_users_array[*]}"
+    $script_dir/../jmeter/run-performance-tests.sh -t -m $application_heap -s $backend_sleep_time -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -b "${message_sizes_array[*]}" \
+     -u "${concurrent_users_array[*]}"
 fi
 
 # Save test metadata
@@ -343,16 +345,18 @@ function run_perf_tests_in_stack() {
 
     ssh_command_prefix="ssh -i $key_file -o "StrictHostKeyChecking=no" -T ubuntu@$jmeter_client_ip"
     # Run performance tests
-    # run_remote_tests_command="$ssh_command_prefix ./jmeter/${run_performance_tests_script_name} -m $m -s $s -d $d -w $w -j $j -k $k -l $l -u '${concurrent_users_array[*]}' -b '${message_sizes_array[*]}'"
+    # run_remote_tests_command="$ssh_command_prefix ./jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -u '${concurrent_users_array[*]}' -b '${message_sizes_array[*]}'"
     # echo "Running performance tests: $run_remote_tests_command"
     # Handle any error and let the script continue.
     # $run_remote_tests_command || echo "Remote test ssh command failed: $run_remote_tests_command"
     if [[ $distributed_jmeter_deployment ]]; then
         echo "Running the performace test with distributed jmeter deployment"
-        $ssh_command_prefix "./jmeter/${run_performance_tests_script_name} -m $m -s $s -d $d -w $w -j $j -n 2 -k $k -l $l -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
+        $ssh_command_prefix "./jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time -d $test_duration -w $warm_up_time -j $jmeter_server_heap -n 2 -k $jmeter_client_heap -l $netty_heap \
+        -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
     else
         echo "Running the performace test without distributed jmeter deployment"
-        $ssh_command_prefix "./jmeter/${run_performance_tests_script_name} -m $m -s $s -d $d -w $w -j $j -k $k -l $l -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
+        $ssh_command_prefix "./jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap \
+        -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
     fi
     echo "Downloading results-without-jtls.zip"
     # Download results-without-jtls.zip
@@ -460,8 +464,8 @@ if [[ $(wc -l <summary-errors.csv) -gt 1 ]]; then
 fi
 
 cd $results_dir
-mkdir -p $OUTPUT_DIR/scenarios
-output_scenarios_dir=$OUTPUT_DIR/scenarios
+mkdir -p $output_dir/scenarios
+output_scenarios_dir=$output_dir/scenarios
 cp $stack_results_dir/results.zip $output_scenarios_dir
 unzip $stack_results_dir/results.zip -d $output_scenarios_dir
 unzip_dir="$output_scenarios_dir/results"
