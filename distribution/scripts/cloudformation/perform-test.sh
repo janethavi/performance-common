@@ -57,6 +57,7 @@ then
     apim_endpoint=${propArray[GatewayHttpsUrl]}
     jmeter_client_ip=${propArray[JMeterClient]}
     netty_backend_ip=${propArray[NettyBackend]}
+    region=${propArray[region]}
     # Get the seperated values on string varables
     IFS=',' 
     read -ra message_sizes_array <<< "$message_size"
@@ -153,15 +154,22 @@ key_file=$results_dir/janeth-key.pem
 key_file=$(realpath $key_file)
 sudo chmod 400 $key_file
 
-
 # Create APIS
+echo "SSH to JMeter Client"
 ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip sudo bash /home/ubuntu/Perf_dist/setup/setup-apis.sh -n $netty_backend_ip \
 -a $apim_endpoint -m $mysql_host -u $mysql_username -p $mysql_password -o "root"
 
-
+echo "Getting the IP addresses of the Product nodes"
 declare -a apim_ips
+for ((i = 0; i < 2; i++)); do
+    apim_ips+=python $script_dir/../apim/private_ip_extractor.py $region $access_key_id $access_key_secret WSO2APIMInstance$((i+1))
+done
 # Create APIs
-
+sar_file_location=$script_dir/../sar/install-sar.sh
+for ((i = 0; i < 2; i++)); do
+    scp -i $key_file $sar_file_location ubuntu@${apim_ips[i]}:home/ubuntu
+    ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@${apim_ips[i]} sudo bash /home/ubuntu/install-sar.sh
+done
 # current_dir=$(pwd)
 # data_bucket=$current_dir/../../../../../data-bucket
 # results_dir=$(cat $data_bucket/results_dir.json | jq -r '.results_dir')
