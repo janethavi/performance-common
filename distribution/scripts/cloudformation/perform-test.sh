@@ -16,7 +16,7 @@
 # under the License.
 #
 # ----------------------------------------------------------------------------
-# Run performance tests on AWS CloudFormation stacks.
+# Run performance tests on AWS CloudFormation stack.
 # ----------------------------------------------------------------------------
 
 # Source common script
@@ -59,7 +59,7 @@ then
     netty_backend_ip=${propArray[NettyBackend]}
     region=${propArray[region]}
     # Get the seperated values on string varables
-    IFS=',' 
+    IFS=','
     read -ra message_sizes_array <<< "$message_size"
     read -ra concurrent_users_array <<< "$concurrent_users"
     # Reset to default value after usage
@@ -164,12 +164,6 @@ declare -a apim_ips
 for ((i = 0; i < 2; i++)); do
     apim_ips+=python $script_dir/../apim/private_ip_extractor.py $region $access_key_id $access_key_secret WSO2APIMInstance$((i+1))
 done
-# Create APIs
-sar_file_location=$script_dir/../sar/install-sar.sh
-for ((i = 0; i < 2; i++)); do
-    scp -i $key_file $sar_file_location ubuntu@${apim_ips[i]}:home/ubuntu
-    ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@${apim_ips[i]} sudo bash /home/ubuntu/install-sar.sh
-done
 # current_dir=$(pwd)
 # data_bucket=$current_dir/../../../../../data-bucket
 # results_dir=$(cat $data_bucket/results_dir.json | jq -r '.results_dir')
@@ -192,11 +186,13 @@ run_performance_tests_script_name=${run_performance_tests_script_name:-run-perfo
 echo "Estimating total time for performance tests: "
 if [[ $distributed_jmeter_deployment ]]; then
     echo "Calculating the estimated time with distributed jmeter deployment "
-    $script_dir/../jmeter/run-performance-tests.sh -t -m $application_heap -s $backend_sleep_time -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -n 2 -b "${message_sizes_array[*]}" \
+    $script_dir/../jmeter/run-performance-tests.sh -t -m $application_heap -s $backend_sleep_time -d $test_duration \
+    -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -n $num_jmeter_servers -b "${message_sizes_array[*]}" \
      -u "${concurrent_users_array[*]}"
 else
     echo "Calculating the estimated time without distributed jmeter deployment "
-    $script_dir/../jmeter/run-performance-tests.sh -t -m $application_heap -s $backend_sleep_time -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -b "${message_sizes_array[*]}" \
+    $script_dir/../jmeter/run-performance-tests.sh -t -m $application_heap -s $backend_sleep_time -d $test_duration \
+    -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -b "${message_sizes_array[*]}" \
      -u "${concurrent_users_array[*]}"
 fi
 
@@ -347,11 +343,11 @@ function run_perf_tests_in_stack() {
     # # Print EC2 instances
     # echo "AWS EC2 instances: "
     # cat $stack_resources_json | jq -r '.StackResources | .[] | select ( .ResourceType == "AWS::EC2::Instance" ) | .LogicalResourceId'
-    echo "Getting JMeter Client Public IP..."
-    # jmeter_client_ip="$(aws cloudformation describe-stacks --stack-name $stack_id --query 'Stacks[0].Outputs[?OutputKey==`JMeterClientPublicIP`].OutputValue' --output text)"
-    echo "JMeter Client Public IP: $jmeter_client_ip"
+    # echo "Getting JMeter Client Public IP..."
+    # # jmeter_client_ip="$(aws cloudformation describe-stacks --stack-name $stack_id --query 'Stacks[0].Outputs[?OutputKey==`JMeterClientPublicIP`].OutputValue' --output text)"
+    # echo "JMeter Client Public IP: $jmeter_client_ip"
 
-    ssh_command_prefix="ssh -i $key_file -o "StrictHostKeyChecking=no" -T ubuntu@$jmeter_client_ip"
+    # ssh_command_prefix="ssh -i $key_file -o "StrictHostKeyChecking=no" -T ubuntu@$jmeter_client_ip"
     # Run performance tests
     # run_remote_tests_command="$ssh_command_prefix ./jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -u '${concurrent_users_array[*]}' -b '${message_sizes_array[*]}'"
     # echo "Running performance tests: $run_remote_tests_command"
