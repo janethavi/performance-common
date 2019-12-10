@@ -154,6 +154,9 @@ key_file=$results_dir/janeth-key.pem
 key_file=$(realpath $key_file)
 sudo chmod 400 $key_file
 
+# Starting Backend
+ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$netty_backend_ip sudo bash /home/ubuntu/Perf_dist/netty-service/netty-start.sh -n $netty_heap -w
+
 # Create APIS
 echo "SSH to JMeter Client"
 ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip sudo bash /home/ubuntu/Perf_dist/setup/setup-apis.sh -n $netty_backend_ip \
