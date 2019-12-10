@@ -34,6 +34,7 @@ ALLOWED_OPTIONS="ubsm"
 input_dir=$1
 output_dir=$2
 deployment_prop_file=$input_dir/"deployment.properties"
+testplan_prop_file=$input_dir/../"testplan-props.properties"
 echo "Test output directory is $output_dir"
 declare -A propArray
 if [ -f "$deployment_prop_file" ]
@@ -52,8 +53,6 @@ then
     concurrent_users=${propArray[con_users]}
     num_jmeter_servers=${propArray[NumberOfJmeterServers]}
     mysql_host=${propArray[RDSHost]}
-    mysql_username=${propArray[DBUsername]}
-    mysql_password=${propArray[DBPassword]}
     apim_endpoint=${propArray[GatewayHttpsUrl]}
     jmeter_client_ip=${propArray[JMeterClient]}
     netty_backend_ip=${propArray[NettyBackend]}
@@ -63,7 +62,6 @@ then
     read -ra message_sizes_array <<< "$message_size"
     read -ra concurrent_users_array <<< "$concurrent_users"
     # Reset to default value after usage
-    IFS=' '
 
     # while read -r line; do
     #      concurrent_users_array=("${concurrent_users_array[@]}" "$line")
@@ -73,6 +71,18 @@ then
     # done < <(grep msg_size= file2.properties | sed "s/msg_size=//")
 else
   echo "Error: deployment.properties file not found."
+  exit 1
+fi
+if [ -f "$testplan_prop_file" ]
+then
+    while IFS='=' read -r key value; do
+        propArray["$key"]="$value"
+    done < $testplan_prop_file
+    mysql_username=${propArray[DBUsername]}
+    mysql_password=${propArray[DBPassword]}
+    IFS=' '
+else
+  echo "Error: testplan_prop.properties file not found."
   exit 1
 fi
 # application_heap=$(cat $file | jq -r '.heap_memory_aec2-18-223-106-78.us-east-2.compute.amazonaws.compp')
