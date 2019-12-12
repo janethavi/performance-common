@@ -1,6 +1,1 @@
-argparse
-jinja2
-pandas
-matplotlib
-seaborn
-humanize
+boto3

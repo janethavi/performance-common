@@ -156,6 +156,11 @@ fi
 # else
     # performance_test_options+=("${run_performance_tests_options[*]}")
 # fi
+sudo python -m pip install --force-reinstall pip==9.0.1
+pip --version
+virtualenv .venv
+source .venv/bin/activate
+pip install -r $script_dir/python-requirements.txt
 
 results_dir="Results-$(date +%Y%m%d%H%M%S)"
 mkdir $results_dir
@@ -165,7 +170,7 @@ key_file=$(realpath $key_file)
 sudo chmod 400 $key_file
 
 # Starting Backend
-ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$netty_backend_ip sudo bash /home/ubuntu/Perf_dist/netty-service/netty-start.sh -n $netty_heap -w
+ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$netty_backend_ip sudo bash /home/ubuntu/Perf_dist/netty-service/netty-start.sh -m $netty_heap -w
 
 # Create APIS
 echo "SSH to JMeter Client"
