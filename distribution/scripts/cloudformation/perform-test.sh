@@ -156,11 +156,9 @@ fi
 # else
     # performance_test_options+=("${run_performance_tests_options[*]}")
 # fi
-sudo python -m pip install --force-reinstall pip==9.0.1
-pip --version
 virtualenv .venv
 source .venv/bin/activate
-pip install -r $script_dir/python-requirements.txt
+pip3 install -r $script_dir/python-requirements.txt
 
 results_dir="Results-$(date +%Y%m%d%H%M%S)"
 mkdir $results_dir
