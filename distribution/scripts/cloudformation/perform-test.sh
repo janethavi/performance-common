@@ -175,11 +175,12 @@ echo "SSH to JMeter Client"
 ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip sudo bash /home/ubuntu/Perf_dist/setup/setup-apis.sh -n $netty_backend_ip \
 -a $apim_endpoint -m $mysql_host -u $mysql_username -p $mysql_password -o "root"
 
-echo "Getting the IP addresses of the Product nodes"
-declare -a apim_ips
-for ((i = 0; i < 2; i++)); do
-    apim_ips+=python $script_dir/../apim/private_ip_extractor.py $region $access_key_id $access_key_secret WSO2APIMInstance$((i+1))
-done
+# echo "Getting the IP addresses of the Product nodes"
+# declare -a apim_ips
+# echo ${apim_ips[2]}
+# for ((i = 0; i < 2; i++)); do
+#     apim_ips+=(python $script_dir/../apim/private_ip_extractor.py $region $access_key_id $access_key_secret WSO2APIMInstance$((i+1)))
+# done
 # current_dir=$(pwd)
 # data_bucket=$current_dir/../../../../../data-bucket
 # results_dir=$(cat $data_bucket/results_dir.json | jq -r '.results_dir')
@@ -199,18 +200,16 @@ run_performance_tests_script_name=${run_performance_tests_script_name:-run-perfo
 # echo "Estimating total time for performance tests: $estimate_command"
 # Estimating this script will also validate the options. It's important to validate options before creating the stack.
 # $estimate_command
-echo "Estimating total time for performance tests: "
-if [[ $distributed_jmeter_deployment ]]; then
-    echo "Calculating the estimated time with distributed jmeter deployment "
-    $script_dir/../jmeter/run-performance-tests.sh -t -m $application_heap -s $backend_sleep_time -d $test_duration \
-    -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -n $num_jmeter_servers -b "${message_sizes_array[*]}" \
-     -u "${concurrent_users_array[*]}"
-else
-    echo "Calculating the estimated time without distributed jmeter deployment "
-    $script_dir/../jmeter/run-performance-tests.sh -t -m $application_heap -s $backend_sleep_time -d $test_duration \
-    -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -b "${message_sizes_array[*]}" \
-     -u "${concurrent_users_array[*]}"
-fi
+# echo "Estimating total time for performance tests: "
+# if [[ $distributed_jmeter_deployment ]]; then
+#     echo "Calculating the estimated time with distributed jmeter deployment "
+#     $script_dir/../jmeter/run-performance-tests.sh -t -m $application_heap -s $backend_sleep_time -d $test_duration \
+#     -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -n $num_jmeter_servers -b "${message_sizes_array[*]}" -u "${concurrent_users_array[*]}"
+# else
+#     echo "Calculating the estimated time without distributed jmeter deployment "
+#     $script_dir/../jmeter/run-performance-tests.sh -t -m $application_heap -s $backend_sleep_time -d $test_duration \
+#     -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -b "${message_sizes_array[*]}" -u "${concurrent_users_array[*]}"
+# fi
 
 # Save test metadata
 # mv test-metadata.json $results_dir
@@ -328,13 +327,13 @@ function download_files() {
 # }
 
 function run_perf_tests_in_stack() {
-    local index=$1
-    local stack_id=$2
-    local stack_name=$3
-    local stack_results_dir=$4
+    # local index=$1
+    # local stack_id=$2
+    # local stack_name=$3
+    # local stack_results_dir=$1
     #trap "save_logs_and_delete_stack ${stack_id} ${stack_name} ${stack_results_dir}" EXIT
     #trap "save_logs_and_delete_stack ${stack_id} ${stack_name} ${stack_results_dir}" RETURN
-    printf "Running performance tests on '%s' stack.\n" "$stack_name"
+    # printf "Running performance tests on '%s' stack.\n" "$stack_name"
 
     # Download files periodically
     # for wait_time in $(seq 5 5 30); do
@@ -363,7 +362,7 @@ function run_perf_tests_in_stack() {
     # # jmeter_client_ip="$(aws cloudformation describe-stacks --stack-name $stack_id --query 'Stacks[0].Outputs[?OutputKey==`JMeterClientPublicIP`].OutputValue' --output text)"
     # echo "JMeter Client Public IP: $jmeter_client_ip"
 
-    # ssh_command_prefix="ssh -i $key_file -o "StrictHostKeyChecking=no" -T ubuntu@$jmeter_client_ip"
+    ssh_command_prefix="ssh -i $key_file -o "StrictHostKeyChecking=no" -T ubuntu@$jmeter_client_ip"
     # Run performance tests
     # run_remote_tests_command="$ssh_command_prefix ./jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -u '${concurrent_users_array[*]}' -b '${message_sizes_array[*]}'"
     # echo "Running performance tests: $run_remote_tests_command"
@@ -378,53 +377,53 @@ function run_perf_tests_in_stack() {
         $ssh_command_prefix "./jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap \
         -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
     fi
-    echo "Downloading results-without-jtls.zip"
-    # Download results-without-jtls.zip
-    scp -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip:results-without-jtls.zip $stack_results_dir
-    echo "Downloading results.zip"
-    # Download results.zip
-    scp -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip:results.zip $stack_results_dir
+    # echo "Downloading results-without-jtls.zip"
+    # # Download results-without-jtls.zip
+    # scp -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip:results-without-jtls.zip $stack_results_dir
+    # echo "Downloading results.zip"
+    # # Download results.zip
+    # scp -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip:results.zip $stack_results_dir
 
-    if [[ ! -f $stack_results_dir/results-without-jtls.zip ]]; then
-        echo "Failed to download the results-without-jtls.zip"
-        exit 500
-    fi
+    # if [[ ! -f $stack_results_dir/results-without-jtls.zip ]]; then
+    #     echo "Failed to download the results-without-jtls.zip"
+    #     exit 500
+    # fi
 
-    if [[ ! -f $stack_results_dir/results.zip ]]; then
-        echo "Failed to download the results.zip"
-        exit 500
-    fi
+    # if [[ ! -f $stack_results_dir/results.zip ]]; then
+    #     echo "Failed to download the results.zip"
+    #     exit 500
+    # fi
 }
 export AWS_DEFAULT_REGION=us-east-2
-results_dir=$(cat $data_bucket/results_dir.json | jq -r '.results_dir')
-stack_id=$(cat $results_dir/stack_id.json | jq -r '.stack_id')
-stack_name_prefix="wso2-apim-test-"
+# results_dir=$(cat $data_bucket/results_dir.json | jq -r '.results_dir')
+# stack_id=$(cat $results_dir/stack_id.json | jq -r '.stack_id')
+# stack_name_prefix="wso2-apim-test-"
 #stack_id=${stack_ids[$i]}
-i=0
-stack_name="${stack_name_prefix}"
-stack_results_dir="$results_dir/results-$(($i + 1))"
-log_file="${stack_results_dir}/run.log"
-run_perf_tests_in_stack $i ${stack_id} ${stack_name} ${stack_results_dir} 2>&1 | ts "[${stack_name}] [%Y-%m-%d %H:%M:%S]" | tee ${log_file} &
-
+# i=0
+# stack_name="${stack_name_prefix}"
+# stack_results_dir="$results_dir/results-$(($i + 1))"
+# log_file="${stack_results_dir}/run.log"
+# run_perf_tests_in_stack $i ${stack_id} ${stack_name} ${stack_results_dir} 2>&1 | ts "[${stack_name}] [%Y-%m-%d %H:%M:%S]" | tee ${log_file} &
+run_perf_tests_in_stack 
 
 # See current jobs
-echo "Jobs: "
-# jobs
-echo "Waiting till all performance test jobs are completed..."
-# Wait till parallel tests complete
-wait
+# echo "Jobs: "
+# # jobs
+# echo "Waiting till all performance test jobs are completed..."
+# # Wait till parallel tests complete
+# wait
 
-declare -a system_information_files
+# declare -a system_information_files
 
-# Extract all results.
-for ((i = 0; i < ${#performance_test_options[@]}; i++)); do
-    stack_results_dir="$results_dir/results-$(($i + 1))"
-    unzip -nq ${stack_results_dir}/results-without-jtls.zip -x '*/test-metadata.json' -d $results_dir
-    system_info_file="${stack_results_dir}/files/${ec2_instance_name}/system-info.json"
-    if [[ -f $system_info_file ]]; then
-        system_information_files+=("$system_info_file")
-    fi
-done
+# # Extract all results.
+# for ((i = 0; i < ${#performance_test_options[@]}; i++)); do
+#     stack_results_dir="$results_dir/results-$(($i + 1))"
+#     unzip -nq ${stack_results_dir}/results-without-jtls.zip -x '*/test-metadata.json' -d $results_dir
+#     system_info_file="${stack_results_dir}/files/${ec2_instance_name}/system-info.json"
+#     if [[ -f $system_info_file ]]; then
+#         system_information_files+=("$system_info_file")
+#     fi
+# done
 # echo "Combining system information in following files: ${system_information_files[@]}"
 # Join json files containing system information and create an array
 # jq -s . "${system_information_files[@]}" >all-system-info.json
