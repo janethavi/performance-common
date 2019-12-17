@@ -456,7 +456,7 @@ function initialize_test() {
 
     if [ "$estimate" = false ]; then
         jmeter_dir=""
-        for dir in $HOME/apache-jmeter*; do
+        for dir in /home/ubuntu/Resources/apache-jmeter*; do
             [ -d "${dir}" ] && jmeter_dir="${dir}" && break
         done
         if [[ -d $jmeter_dir ]]; then

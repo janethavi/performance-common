@@ -42,6 +42,8 @@ then
     while IFS='=' read -r key value; do
         propArray["$key"]="$value"
     done < $deployment_prop_file
+    aws_access_key_id=${propArray[AWS_ACCEES_KEY_ID]}
+    aws_secret_access_key=${propArray[AWS_SECRET_ACCESS_KEY]}
     application_heap=${propArray[heap_memory_app]}
     backend_sleep_time=${propArray[backend_sleep]}
     test_duration=${propArray[test_duration]}
@@ -175,12 +177,11 @@ echo "SSH to JMeter Client"
 ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip sudo bash /home/ubuntu/Perf_dist/setup/setup-apis.sh -n $netty_backend_ip \
 -a $apim_endpoint -m $mysql_host -u $mysql_username -p $mysql_password -o "root"
 
-# echo "Getting the IP addresses of the Product nodes"
-# declare -a apim_ips
-# echo ${apim_ips[2]}
-# for ((i = 0; i < 2; i++)); do
-#     apim_ips+=(python $script_dir/../apim/private_ip_extractor.py $region $access_key_id $access_key_secret WSO2APIMInstance$((i+1)))
-# done
+echo "Getting the IP addresses of the Product nodes"
+declare -a apim_ips
+for ((i = 0; i < 2; i++)); do
+    apim_ips+=(python $script_dir/../apim/private_ip_extractor.py $region $aws_access_key_id $aws_secret_access_key WSO2APIMInstance$((i+1)))
+done
 # current_dir=$(pwd)
 # data_bucket=$current_dir/../../../../../data-bucket
 # results_dir=$(cat $data_bucket/results_dir.json | jq -r '.results_dir')
@@ -362,19 +363,21 @@ function run_perf_tests_in_stack() {
     # # jmeter_client_ip="$(aws cloudformation describe-stacks --stack-name $stack_id --query 'Stacks[0].Outputs[?OutputKey==`JMeterClientPublicIP`].OutputValue' --output text)"
     # echo "JMeter Client Public IP: $jmeter_client_ip"
 
-    ssh_command_prefix="ssh -i $key_file -o "StrictHostKeyChecking=no" -T ubuntu@$jmeter_client_ip"
+    jmeter_ssh_command="ssh -i $key_file -o "StrictHostKeyChecking=no" -T ubuntu@$jmeter_client_ip"
     # Run performance tests
-    # run_remote_tests_command="$ssh_command_prefix ./jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -u '${concurrent_users_array[*]}' -b '${message_sizes_array[*]}'"
+    # run_remote_tests_command="$jmeter_ssh_command ./jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -u '${concurrent_users_array[*]}' -b '${message_sizes_array[*]}'"
     # echo "Running performance tests: $run_remote_tests_command"
     # Handle any error and let the script continue.
     # $run_remote_tests_command || echo "Remote test ssh command failed: $run_remote_tests_command"
     if [[ $distributed_jmeter_deployment ]]; then
         echo "Running the performace test with distributed jmeter deployment"
-        $ssh_command_prefix "./jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time -d $test_duration -w $warm_up_time -j $jmeter_server_heap -n 2 -k $jmeter_client_heap -l $netty_heap \
+        $jmeter_ssh_command "$script_dir/../jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time \
+        -d $test_duration -w $warm_up_time -j $jmeter_server_heap -n 2 -k $jmeter_client_heap -l $netty_heap \
         -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
     else
         echo "Running the performace test without distributed jmeter deployment"
-        $ssh_command_prefix "./jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap \
+        $jmeter_ssh_command "$script_dir/../jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time \
+        -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap \
         -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
     fi
     # echo "Downloading results-without-jtls.zip"
