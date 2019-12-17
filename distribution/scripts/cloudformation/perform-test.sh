@@ -180,7 +180,7 @@ ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip sudo bas
 echo "Getting the IP addresses of the Product nodes"
 declare -a apim_ips
 for ((i = 0; i < 2; i++)); do
-    apim_ips+=(python $script_dir/../apim/private_ip_extractor.py $region $aws_access_key_id $aws_secret_access_key WSO2APIMInstance$((i+1)))
+    apim_ips+=$(python $script_dir/../apim/private_ip_extractor.py $region $aws_access_key_id $aws_secret_access_key WSO2APIMInstance$((i+1)))
 done
 # current_dir=$(pwd)
 # data_bucket=$current_dir/../../../../../data-bucket
@@ -188,12 +188,12 @@ done
 # results_dir="Results-$(date +%Y%m%d%H%M%S)"
 # mkdir $results_dir
 
-if [[ $num_jmeter_servers -gt 0 ]]; then
-#distributed_jmeter_deployment=$(cat $results_dir/cf-test-metadata.json | jq -r '.distributed_jmeter_deployment')
-    distributed_jmeter_deployment=true
-else
-    distributed_jmeter_deployment=false
-fi
+# if [[ $num_jmeter_servers -gt 0 ]]; then
+# #distributed_jmeter_deployment=$(cat $results_dir/cf-test-metadata.json | jq -r '.distributed_jmeter_deployment')
+#     distributed_jmeter_deployment=true
+# else
+#     distributed_jmeter_deployment=false
+# fi
 # Allow to change the script name
 run_performance_tests_script_name=${run_performance_tests_script_name:-run-performance-tests.sh}
 # estimate_command="$script_dir/../jmeter/${run_performance_tests_script_name} -t -m $application_heap -s $backend_sleep_time -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -u '${concurrent_users_array[@]}' -b '50 1024' "
@@ -369,14 +369,14 @@ function run_perf_tests_in_stack() {
     # echo "Running performance tests: $run_remote_tests_command"
     # Handle any error and let the script continue.
     # $run_remote_tests_command || echo "Remote test ssh command failed: $run_remote_tests_command"
-    if [[ $distributed_jmeter_deployment ]]; then
+    if [[ $num_jmeter_servers -gt 0 ]]; then
         echo "Running the performace test with distributed jmeter deployment"
-        $jmeter_ssh_command "$script_dir/../jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time \
+        $jmeter_ssh_command "$HOME/Perf_dist/jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time \
         -d $test_duration -w $warm_up_time -j $jmeter_server_heap -n 2 -k $jmeter_client_heap -l $netty_heap \
         -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
     else
         echo "Running the performace test without distributed jmeter deployment"
-        $jmeter_ssh_command "$script_dir/../jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time \
+        $jmeter_ssh_command "$HOME/Perf_dist/jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time \
         -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap \
         -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
     fi
