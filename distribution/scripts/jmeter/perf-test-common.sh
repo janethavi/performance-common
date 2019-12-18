@@ -131,6 +131,7 @@ function usage() {
     echo "-u: Concurrent Users to test. You can give multiple options to specify multiple users."
     echo "-b: Message sizes in bytes. You can give multiple options to specify multiple message sizes."
     echo "-s: Backend Sleep Times in milliseconds. You can give multiple options to specify multiple sleep times."
+    echo "-a: Backend IP address"
     if function_exists usageHelp; then
         echo "$(usageHelp)"
     fi
@@ -150,7 +151,7 @@ function usage() {
 
 # Reset getopts
 OPTIND=0
-while getopts "u:b:s:m:d:w:n:j:k:l:i:e:tp:h" opts; do
+while getopts "u:b:s:a:m:d:w:n:j:k:l:i:e:tp:h" opts; do
     case $opts in
     u)
         concurrent_users_array+=("${OPTARG}")
@@ -160,6 +161,9 @@ while getopts "u:b:s:m:d:w:n:j:k:l:i:e:tp:h" opts; do
         ;;
     s)
         backend_sleep_times_array+=("${OPTARG}")
+        ;;
+    a)
+        netty_backend_ip=${OPTARG}
         ;;
     m)
         heap_sizes_array+=("${OPTARG}")
@@ -215,6 +219,9 @@ done
 #     done
 
 # Validate options
+key_file=$(find /home/ubuntu/ -maxdepth 1 -type f -name "*.pem")
+netty_ssh_command=ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$netty_backend_ip
+
 number_regex='^[0-9]+$'
 heap_regex='^[0-9]+[MG]$'
 
@@ -486,12 +493,12 @@ function initialize_test() {
         if [[ $jmeter_servers -gt 1 ]]; then
             for jmeter_ssh_host in ${jmeter_ssh_hosts[@]}; do
                 echo "Generating Payloads in $jmeter_ssh_host"
-                ssh $jmeter_ssh_host "./payloads/generate-payloads.sh" -p $payload_type ${payload_sizes[@]}
+                ssh $jmeter_ssh_host "./Perf_dist/payloads/generate-payloads.sh" -p $payload_type ${payload_sizes[@]}
             done
         else
             pushd $HOME
             # Payloads should be created in the $HOME directory
-            if ! ./payloads/generate-payloads.sh -p $payload_type ${payload_sizes[@]}; then
+            if ! ./Perf_dist/payloads/generate-payloads.sh -p $payload_type ${payload_sizes[@]}; then
                 echo "WARNING: Failed to generate payloads!"
             fi
             popd
