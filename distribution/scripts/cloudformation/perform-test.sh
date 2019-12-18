@@ -180,7 +180,7 @@ ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip sudo bas
 echo "Getting the IP addresses of the Product nodes"
 declare -a apim_ips
 for ((i = 0; i < 2; i++)); do
-    apim_ips+=$(python $script_dir/../apim/private_ip_extractor.py $region $aws_access_key_id $aws_secret_access_key WSO2APIMInstance$((i+1)))
+    apim_ips+=$(python $script_dir/../apim/private_ip_extractor.py $region $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY WSO2APIMInstance$((i+1)))
 done
 # current_dir=$(pwd)
 # data_bucket=$current_dir/../../../../../data-bucket
