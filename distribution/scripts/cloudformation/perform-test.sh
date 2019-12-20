@@ -165,12 +165,12 @@ pip3 install -r $script_dir/python-requirements.txt
 
 results_dir="Results-$(date +%Y%m%d%H%M%S)"
 mkdir $results_dir
-aws s3 cp s3://performance-test-archives/janeth-key.pem $results_dir/janeth-key.pem
-key_file=$results_dir/janeth-key.pem
+aws s3 cp s3://performance-test-archives/janeth-key.pem $script_dir/janeth-key.pem
+key_file=$script_dir/janeth-key.pem
 key_file=$(realpath $key_file)
 sudo chmod 400 $key_file
 
-scp -i $key_file $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip:home/ubuntu
+scp -i $key_file $key_file ubuntu@$jmeter_client_ip:home/ubuntu
 # Starting Backend
 ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$netty_backend_ip sudo bash /home/ubuntu/Perf_dist/netty-service/netty-start.sh -m $netty_heap -w
 
