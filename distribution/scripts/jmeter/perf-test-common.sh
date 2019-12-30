@@ -123,7 +123,7 @@ function usage() {
     if function_exists usageCommand; then
         echo "   $(usageCommand)"
     fi
-    echo "   [-d <test_duration>] [-w <warmup_time>]"
+    echo "   [-d <test_duration>] [-w <warmup_time>] [-a <netty_backend_ip>]"
     echo "   [-n <jmeter_servers>] [-j <jmeter_server_heap_size>] [-k <jmeter_client_heap_size>] [-l <netty_service_heap_size>]"
     echo "   [-i <include_scenario_name>] [-e <include_scenario_name>] [-t] [-p <estimated_processing_time_in_between_tests>] [-h]"
     echo ""
