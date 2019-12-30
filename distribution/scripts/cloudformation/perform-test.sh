@@ -42,8 +42,6 @@ then
     while IFS='=' read -r key value; do
         propArray["$key"]="$value"
     done < $deployment_prop_file
-    aws_access_key_id=${propArray[AWS_ACCEES_KEY_ID]}
-    aws_secret_access_key=${propArray[AWS_SECRET_ACCESS_KEY]}
     application_heap=${propArray[heap_memory_app]}
     backend_sleep_time=${propArray[backend_sleep]}
     test_duration=${propArray[test_duration]}
@@ -170,7 +168,7 @@ key_file=$script_dir/janeth-key.pem
 key_file=$(realpath $key_file)
 sudo chmod 400 $key_file
 
-scp -i $key_file $key_file ubuntu@$jmeter_client_ip:home/ubuntu
+scp -i $key_file -o "StrictHostKeyChecking=no" $key_file ubuntu@$jmeter_client_ip:/home/ubuntu/
 # Starting Backend
 ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$netty_backend_ip sudo bash /home/ubuntu/Perf_dist/netty-service/netty-start.sh -m $netty_heap -w
 
