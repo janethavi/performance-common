@@ -220,6 +220,7 @@ done
 
 # Validate options
 key_file=$(find /home/ubuntu/ -maxdepth 1 -type f -name "*.pem")
+echo $key_file
 netty_ssh_command=ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$netty_backend_ip
 
 number_regex='^[0-9]+$'
