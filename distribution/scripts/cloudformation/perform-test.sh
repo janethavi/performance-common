@@ -168,7 +168,7 @@ key_file=$script_dir/janeth-key.pem
 key_file=$(realpath $key_file)
 sudo chmod 400 $key_file
 
-scp -i $key_file -o "StrictHostKeyChecking=no" $key_file ubuntu@$jmeter_client_ip:/home/ubuntu/
+scp -i $key_file -o "StrictHostKeyChecking=no" $key_file ubuntu@$jmeter_client_ip:/home/ubuntu
 # Starting Backend
 ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$netty_backend_ip sudo bash /home/ubuntu/Perf_dist/netty-service/netty-start.sh -m $netty_heap -w
 
@@ -182,6 +182,10 @@ declare -a apim_ips
 for ((i = 0; i < 2; i++)); do
     apim_ips+=$(python $script_dir/../apim/private_ip_extractor.py $region $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY WSO2APIMInstance$((i+1)))
 done
+
+# scp Perf-dist to product nodes from jmeter-client
+ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip bash /home/ubuntu/Perf_dist/setup/setup_perf_dist.sh "${apim_ips[@]}"
+
 # current_dir=$(pwd)
 # data_bucket=$current_dir/../../../../../data-bucket
 # results_dir=$(cat $data_bucket/results_dir.json | jq -r '.results_dir')
