@@ -25,11 +25,12 @@ script_dir=$(realpath $script_dir)
 . $script_dir/../common/common.sh
 
 key_file=""
-default_number_of_stacks=1
-number_of_stacks=$default_number_of_stacks
-default_parallel_parameter_option="u"
-parallel_parameter_option="$default_parallel_parameter_option"
-ALLOWED_OPTIONS="ubsm"
+number_of_product_nodes=2
+# default_number_of_stacks=1
+# number_of_stacks=$default_number_of_stacks
+# default_parallel_parameter_option="u"
+# parallel_parameter_option="$default_parallel_parameter_option"
+# ALLOWED_OPTIONS="ubsm"
 
 input_dir=$1
 output_dir=$2
@@ -51,24 +52,13 @@ then
     netty_heap=${propArray[heap_memory_netty]}
     message_size=${propArray[msg_size]}
     concurrent_users=${propArray[con_users]}
-    num_jmeter_servers=${propArray[NumberOfJmeterServers]}
     mysql_host=${propArray[RDSHost]}
     apim_endpoint=${propArray[GatewayHttpsUrl]}
     jmeter_client_ip=${propArray[JMeterClient]}
     netty_backend_ip=${propArray[NettyBackend]}
-    
-    # Get the seperated values on string varables
     IFS=','
     read -ra message_sizes_array <<< "$message_size"
     read -ra concurrent_users_array <<< "$concurrent_users"
-    # Reset to default value after usage
-
-    # while read -r line; do
-    #      concurrent_users_array=("${concurrent_users_array[@]}" "$line")
-    # done < <(grep con_users= file2.properties | sed "s/con_users=//")
-    # while read -r line; do
-    #      message_sizes_array=("${message_sizes_array[@]}" "$line")
-    # done < <(grep msg_size= file2.properties | sed "s/msg_size=//")
 else
   echo "Error: deployment.properties file not found."
   exit 1
@@ -81,82 +71,12 @@ then
     mysql_username=${propArray[DBUsername]}
     mysql_password=${propArray[DBPassword]}
     region=${propArray[region]}
+    num_jmeter_servers=${propArray[NumberOfJmeterServers]}
     IFS=' '
 else
   echo "Error: testplan_prop.properties file not found."
   exit 1
 fi
-# application_heap=$(cat $file | jq -r '.heap_memory_aec2-18-223-106-78.us-east-2.compute.amazonaws.compp')
-# s=$(cat $file | jq -r '.backend_sleep')
-# test_duration=$(cat $file | jq -r '.test_duration')
-# warm_up_time=$(cat $file | jq -r '.warmup_time')
-# jmeter_server_heap=$(cat $file | jq -r '.heap_memory_jmeter_s')
-# jmeter_client_heap=$(cat $file | jq -r '.heap_memory_jmeter_c')
-# netty_heap=$(cat $file | jq -r '.heap_memory_netty')
-# concurrent_users_array=$(cat $file | jq -r '.con_users[]')
-# message_sizes_array=$(cat $file | jq -r '.msg_size[]')
-
-
-# [[ $concurrent_users_array ]] && export A_MY_ARRAY=$(declare -p concurrent_users_array)
-# [[ $message_sizes_array ]] && export B_MY_ARRAY=$(declare -p message_sizes_array)
-
-# run_performance_tests_options=("$@")
-
-# echo "${run_performance_tests_options[@]}"
-
-# declare -a performance_test_options
-
-# if [[ $number_of_stacks -gt 1 ]]; then
-#     # Read options given to the performance test script. Refer jmeter/perf-test-common.sh
-#     declare -a options
-#     # Flag to check whether next parameter is an argument to $parallel_parameter_option
-#     next_opt_param=false
-#     for opt in ${run_performance_tests_options[@]}; do
-#         if [[ $opt == -$parallel_parameter_option* ]]; then
-#             optarg="${opt:2}"
-#             if [[ ! -z $optarg ]]; then
-#                 options+=("${optarg}")
-#             else
-#                 next_opt_param=true
-#             fi
-#         else
-#             if [[ $next_opt_param == true ]]; then
-#                 options+=("${opt}")
-#                 next_opt_param=false
-#             else
-#                 run_performance_tests_remaining_options+=("${opt}")
-#             fi
-#         fi
-#     done
-#     minimum_params_per_stack=$(bc <<<"scale=0; ${#options[@]}/${number_of_stacks}")
-#     remaining_params=$(bc <<<"scale=0; ${#options[@]}%${number_of_stacks}")
-#     echo "Parallel option parameters: ${#options[@]}"
-#     echo "Number of stacks: ${number_of_stacks}"
-#     echo "Minimum parameters per stack: $minimum_params_per_stack"
-#     echo "Remaining parameters after distributing evenly: $remaining_params"
-
-#     option_counter=0
-#     remaining_option_counter=0
-#     for ((i = 0; i < $number_of_stacks; i++)); do
-#         declare -a options_per_stack=()
-#         for ((j = 0; j < $minimum_params_per_stack; j++)); do
-#             options_per_stack+=("${options[$option_counter]}")
-#             let option_counter=option_counter+1
-#         done
-#         if [[ $remaining_option_counter -lt $remaining_params ]]; then
-#             options_per_stack+=("${options[$option_counter]}")
-#             let option_counter=option_counter+1
-#             let remaining_option_counter=remaining_option_counter+1
-#         fi
-#         options_list=""
-#         for parameter_value in ${options_per_stack[@]}; do
-#             options_list+="-${parallel_parameter_option} ${parameter_value} "
-#         done
-#         performance_test_options+=("${options_list} ${run_performance_tests_remaining_options[*]}")
-#     done
-# else
-    # performance_test_options+=("${run_performance_tests_options[*]}")
-# fi
 virtualenv .venv
 source .venv/bin/activate
 pip3 install -r $script_dir/python-requirements.txt
@@ -167,23 +87,33 @@ aws s3 cp s3://performance-test-archives/janeth-key.pem $script_dir/janeth-key.p
 key_file=$script_dir/janeth-key.pem
 key_file=$(realpath $key_file)
 sudo chmod 400 $key_file
+scp_command_prefix="scp -i $key_file -o "StrictHostKeyChecking=no""
+ssh_command_prefix="ssh -i $key_file -o "StrictHostKeyChecking=no""
 
-scp -i $key_file -o "StrictHostKeyChecking=no" $key_file ubuntu@$jmeter_client_ip:/home/ubuntu
-# Starting Backend
-ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$netty_backend_ip sudo bash /home/ubuntu/Perf_dist/netty-service/netty-start.sh -m $netty_heap -w
+# scp key_file to jmeter-client/jmeter-servers
+if [[ $num_jmeter_servers -gt 0 ]]; then
+    for ((i = 0; i < $num_jmeter_servers; i++)); do
+        $scp_command_prefix $key_file ubuntu@$jmeter_client_ip:/home/ubuntu
+    done
+else
+    $scp_command_prefix $key_file ubuntu@$jmeter_client_ip:/home/ubuntu
+fi
+# # Starting Backend
+# ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$netty_backend_ip sudo bash /home/ubuntu/Perf_dist/netty-service/netty-start.sh -m $netty_heap -w
 
 # Create APIS
 echo "SSH to JMeter Client"
-ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip sudo bash /home/ubuntu/Perf_dist/setup/setup-apis.sh -n $netty_backend_ip \
+echo "Starting to create APIS needed for performance testing"
+$ssh_command_prefix ubuntu@$jmeter_client_ip sudo bash /home/ubuntu/Perf_dist/setup/setup-apis.sh -n $netty_backend_ip \
 -a $apim_endpoint -m $mysql_host -u $mysql_username -p $mysql_password -o "root"
 
 echo "Getting the IP addresses of the Product nodes"
 declare -a apim_ips
-for ((i = 0; i < 2; i++)); do
-    apim_ips+=$(python $script_dir/../apim/private_ip_extractor.py $region $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY WSO2APIMInstance$((i+1)))
+for ((i = 0; i < $number_of_product_nodes; i++)); do
+    apim_ips[i]=$(python $script_dir/../apim/private_ip_extractor.py $region $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY WSO2APIMInstance$((i+1)))
 done
 
-# scp Perf-dist to product nodes from jmeter-client
+# ssh to jmeter-client and scp Perf_dist to product nodes
 ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip bash /home/ubuntu/Perf_dist/setup/setup_perf_dist.sh "${apim_ips[@]}"
 
 # current_dir=$(pwd)
@@ -376,7 +306,7 @@ function run_perf_tests_in_stack() {
     if [[ $num_jmeter_servers -gt 0 ]]; then
         echo "Running the performace test with distributed jmeter deployment"
         $jmeter_ssh_command "$HOME/Perf_dist/jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time \
-        -d $test_duration -w $warm_up_time -j $jmeter_server_heap -n 2 -k $jmeter_client_heap -l $netty_heap -a $netty_backend_ip \
+        -d $test_duration -w $warm_up_time -j $jmeter_server_heap -n $num_jmeter_servers -k $jmeter_client_heap -l $netty_heap -a $netty_backend_ip \
         -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
     else
         echo "Running the performace test without distributed jmeter deployment"
