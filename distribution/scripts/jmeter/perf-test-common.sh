@@ -151,7 +151,7 @@ function usage() {
 
 # Reset getopts
 OPTIND=0
-while getopts "u:b:s:a:m:d:w:n:j:k:l:i:e:tp:h" opts; do
+while getopts "u:b:s:a:c:m:d:w:n:j:k:l:i:e:tp:h:" opts; do
     case $opts in
     u)
         concurrent_users_array+=("${OPTARG}")
@@ -164,6 +164,9 @@ while getopts "u:b:s:a:m:d:w:n:j:k:l:i:e:tp:h" opts; do
         ;;
     a)
         netty_backend_ip=${OPTARG}
+        ;;
+    c)
+        apim_ip_array+=("${OPTARG}")
         ;;
     m)
         heap_sizes_array+=("${OPTARG}")
@@ -567,12 +570,12 @@ function test_scenarios() {
                             echo "Starting Backend Service. Delay: $sleep_time, Additional Flags: ${backend_flags:-N/A}"
                             $netty_ssh_command "./Perf_dist/netty-service/netty-start.sh -m $netty_service_heap_size -w \
                                 -- ${backend_flags} --delay $sleep_time"
-                            collect_server_metrics netty $backend_ssh_host netty
+                            collect_server_metrics netty "${netty_ssh_command}" netty
                         fi
 
                         declare -ag jmeter_params=("users=$users_per_jmeter" "duration=$test_duration")
 
-                        before_execute_test_scenario
+                        before_execute_test_scenario "${apim_ip_array[@]}"
 
                         if [[ $jmeter_servers -gt 1 ]]; then
                             echo "Starting Remote JMeter servers"

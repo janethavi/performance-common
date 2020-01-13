@@ -312,7 +312,7 @@ function run_perf_tests_in_stack() {
         echo "Running the performace test without distributed jmeter deployment"
         $jmeter_ssh_command "$HOME/Perf_dist/jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time \
         -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -a $netty_backend_ip \
-        -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
+        -c '${apim_ips[*]}' -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
     fi
     # echo "Downloading results-without-jtls.zip"
     # # Download results-without-jtls.zip
