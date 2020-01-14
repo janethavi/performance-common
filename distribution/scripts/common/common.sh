@@ -101,20 +101,17 @@ function collect_server_metrics() {
     local metrics_location="${report_location}/${server}"
     mkdir -p $metrics_location
     echo "Collecting server metrics for $server. Bash sources: ${BASH_SOURCE[@]}"
-    local ssh_host
+    local ssh_host_command
     local pgrep_pattern
     if [[ ! -z $3 ]]; then
-        ssh_host="$2"
+        ssh_host_command="$2"
         pgrep_pattern="$3"
     else
         pgrep_pattern="$2"
     fi
     local command_prefix=""
-    if [[ ! -z $ssh_host ]]; then
-        command_prefix="ssh $ssh_host"
-    fi
     if [[ ! $server =~ jmeter.* ]]; then
-        declare -a pids=($($command_prefix pgrep -f "$pgrep_pattern" || echo ""))
+        declare -a pids=($($ssh_host_command pgrep -f "$pgrep_pattern" || echo ""))
         if [[ ${#pids[@]} -gt 0 ]]; then
             echo "Start collecting perf stats on the processes matching the pattern \"$pgrep_pattern\". PIDs found: ${pids[@]}"
             $command_prefix $script_dir/../common/perf-stat-start.sh -p $pgrep_pattern

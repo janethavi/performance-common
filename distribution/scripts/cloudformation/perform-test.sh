@@ -26,11 +26,6 @@ script_dir=$(realpath $script_dir)
 
 key_file=""
 number_of_product_nodes=2
-# default_number_of_stacks=1
-# number_of_stacks=$default_number_of_stacks
-# default_parallel_parameter_option="u"
-# parallel_parameter_option="$default_parallel_parameter_option"
-# ALLOWED_OPTIONS="ubsm"
 
 input_dir=$1
 output_dir=$2
@@ -98,8 +93,8 @@ if [[ $num_jmeter_servers -gt 0 ]]; then
 else
     $scp_command_prefix $key_file ubuntu@$jmeter_client_ip:/home/ubuntu
 fi
-# # Starting Backend
-# ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$netty_backend_ip sudo bash /home/ubuntu/Perf_dist/netty-service/netty-start.sh -m $netty_heap -w
+# Starting Backend
+ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$netty_backend_ip sudo bash /home/ubuntu/Perf_dist/netty-service/netty-start.sh -m $netty_heap -w
 
 # Create APIS
 echo "SSH to JMeter Client"
@@ -114,20 +109,8 @@ for ((i = 0; i < $number_of_product_nodes; i++)); do
 done
 
 # ssh to jmeter-client and scp Perf_dist to product nodes
-ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip bash /home/ubuntu/Perf_dist/setup/setup_perf_dist.sh "${apim_ips[@]}"
+$ssh_command_prefix ubuntu@$jmeter_client_ip bash /home/ubuntu/Perf_dist/setup/setup_perf_dist.sh "${apim_ips[@]}"
 
-# current_dir=$(pwd)
-# data_bucket=$current_dir/../../../../../data-bucket
-# results_dir=$(cat $data_bucket/results_dir.json | jq -r '.results_dir')
-# results_dir="Results-$(date +%Y%m%d%H%M%S)"
-# mkdir $results_dir
-
-# if [[ $num_jmeter_servers -gt 0 ]]; then
-# #distributed_jmeter_deployment=$(cat $results_dir/cf-test-metadata.json | jq -r '.distributed_jmeter_deployment')
-#     distributed_jmeter_deployment=true
-# else
-#     distributed_jmeter_deployment=false
-# fi
 # Allow to change the script name
 run_performance_tests_script_name=${run_performance_tests_script_name:-run-performance-tests.sh}
 # estimate_command="$script_dir/../jmeter/${run_performance_tests_script_name} -t -m $application_heap -s $backend_sleep_time -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -u '${concurrent_users_array[@]}' -b '50 1024' "
@@ -149,7 +132,6 @@ run_performance_tests_script_name=${run_performance_tests_script_name:-run-perfo
 # Save test metadata
 # mv test-metadata.json $results_dir
 # mv test-duration.json $results_dir
-
 
 function download_files() {
     local stack_id="$1"
@@ -192,16 +174,6 @@ function download_files() {
     fi
 }
 
-# function delete_stack() {
-#     local stack_id="$1"
-#     local stack_delete_start_time=$(date +%s)
-#     echo "Deleting the stack: $stack_id"
-#     aws cloudformation delete-stack --stack-name $stack_id
-
-#     echo "Polling till the stack deletion completes..."
-#     aws cloudformation wait stack-delete-complete --stack-name $stack_id
-#     printf "Stack ($stack_id) deletion time: %s\n" "$(format_time $(measure_time $stack_delete_start_time))"
-# }
 
 # function save_logs_and_delete_stack() {
 #     local stack_id="$1"
@@ -242,67 +214,9 @@ function download_files() {
 #     #delete_stack $stack_id
 # }
 
-# function wait_and_download_files() {
-#     local stack_id="$1"
-#     local stack_name="$2"
-#     local stack_results_dir="$3"
-#     local wait_time="$4"
-#     sleep $wait_time
-#     local suffix="$(date +%Y%m%d%H%M%S)"
-#     local stack_files_dir="$stack_results_dir/stack-files"
-#     mkdir -p $stack_files_dir
-#     local stack_status_json=$stack_files_dir/stack-status-$suffix.json
-#     echo "Saving $stack_name stack status to $stack_status_json"
-#     aws cloudformation describe-stacks --stack-name $stack_id --no-paginate --output json >$stack_status_json
-#     local stack_status="$(jq -r '.Stacks[] | .StackStatus' $stack_status_json || echo "")"
-#     echo "Current status of $stack_name stack is $stack_status"
-#     if [[ "$stack_status" != "CREATE_COMPLETE" ]]; then
-#         download_files ${stack_id} ${stack_name} ${stack_results_dir}
-#     fi
-# }
-
 function run_perf_tests_in_stack() {
-    # local index=$1
-    # local stack_id=$2
-    # local stack_name=$3
-    # local stack_results_dir=$1
-    #trap "save_logs_and_delete_stack ${stack_id} ${stack_name} ${stack_results_dir}" EXIT
-    #trap "save_logs_and_delete_stack ${stack_id} ${stack_name} ${stack_results_dir}" RETURN
-    # printf "Running performance tests on '%s' stack.\n" "$stack_name"
-
-    # Download files periodically
-    # for wait_time in $(seq 5 5 30); do
-    #     wait_and_download_files ${stack_id} ${stack_name} ${stack_results_dir} ${wait_time}m &
-    # done
-    # Sleep for sometime before waiting
-    # This is required since the 'aws cloudformation wait stack-create-complete' will exit with a
-    # return code of 255 after 120 failed checks. The command polls every 30 seconds, which means that the
-    # maximum wait time is one hour.
-    # Due to the dependencies in CloudFormation template, the stack creation may take more than one hour.
-    # echo "Waiting ${minimum_stack_creation_wait_time}m before polling for CREATE_COMPLETE status of the stack: $stack_name"
-    # sleep ${minimum_stack_creation_wait_time}m
-    # # Wait till completion
-    # echo "Polling till the stack creation completes..."
-    # aws cloudformation wait stack-create-complete --stack-name $stack_id
-    # printf "Stack creation time: %s\n" "$(format_time $(measure_time $stack_create_start_time))"
-
-    # # Get stack resources
-    # local stack_resources_json=$stack_results_dir/stack-resources.json
-    # echo "Saving $stack_name stack resources to $stack_resources_json"
-    # aws cloudformation describe-stack-resources --stack-name $stack_id --no-paginate --output json >$stack_resources_json
-    # # Print EC2 instances
-    # echo "AWS EC2 instances: "
-    # cat $stack_resources_json | jq -r '.StackResources | .[] | select ( .ResourceType == "AWS::EC2::Instance" ) | .LogicalResourceId'
-    # echo "Getting JMeter Client Public IP..."
-    # # jmeter_client_ip="$(aws cloudformation describe-stacks --stack-name $stack_id --query 'Stacks[0].Outputs[?OutputKey==`JMeterClientPublicIP`].OutputValue' --output text)"
-    # echo "JMeter Client Public IP: $jmeter_client_ip"
-
     jmeter_ssh_command="ssh -i $key_file -o "StrictHostKeyChecking=no" -T ubuntu@$jmeter_client_ip"
     # Run performance tests
-    # run_remote_tests_command="$jmeter_ssh_command ./jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -u '${concurrent_users_array[*]}' -b '${message_sizes_array[*]}'"
-    # echo "Running performance tests: $run_remote_tests_command"
-    # Handle any error and let the script continue.
-    # $run_remote_tests_command || echo "Remote test ssh command failed: $run_remote_tests_command"
     if [[ $num_jmeter_servers -gt 0 ]]; then
         echo "Running the performace test with distributed jmeter deployment"
         $jmeter_ssh_command "$HOME/Perf_dist/jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time \
@@ -331,16 +245,7 @@ function run_perf_tests_in_stack() {
     #     exit 500
     # fi
 }
-export AWS_DEFAULT_REGION=us-east-2
-# results_dir=$(cat $data_bucket/results_dir.json | jq -r '.results_dir')
-# stack_id=$(cat $results_dir/stack_id.json | jq -r '.stack_id')
-# stack_name_prefix="wso2-apim-test-"
-#stack_id=${stack_ids[$i]}
-# i=0
-# stack_name="${stack_name_prefix}"
-# stack_results_dir="$results_dir/results-$(($i + 1))"
-# log_file="${stack_results_dir}/run.log"
-# run_perf_tests_in_stack $i ${stack_id} ${stack_name} ${stack_results_dir} 2>&1 | ts "[${stack_name}] [%Y-%m-%d %H:%M:%S]" | tee ${log_file} &
+# export AWS_DEFAULT_REGION=us-east-2
 run_perf_tests_in_stack 
 
 # See current jobs
