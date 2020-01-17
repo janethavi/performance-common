@@ -215,8 +215,8 @@ function write_server_metrics() {
     echo "Writing server metrics for $server. Process pattern: $pgrep_pattern, SSH host: ${ssh_host:-N/A}"
     local command_prefix=""
     export LC_TIME=C
-    local sar_yesterday_file="/var/log/sysstat/sa/sa$(date +%d -d yesterday)"
-    local sar_today_file="/var/log/sysstat/sa/sa$(date +%d)"
+    local sar_yesterday_file="/var/log/sysstat/sa$(date +%d -d yesterday)"
+    local sar_today_file="/var/log/sysstat/sa$(date +%d)"
     local local_sar_yesterday_file="${metrics_location}/${server}_$(basename $sar_yesterday_file)"
     local local_sar_today_file="${metrics_location}/${server}_$(basename $sar_today_file)"
     if [[ ! -z $ssh_host ]]; then
