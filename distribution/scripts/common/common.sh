@@ -101,20 +101,23 @@ function collect_server_metrics() {
     local metrics_location="${report_location}/${server}"
     mkdir -p $metrics_location
     echo "Collecting server metrics for $server. Bash sources: ${BASH_SOURCE[@]}"
-    local ssh_host_command
+    local server_ip
     local pgrep_pattern
     if [[ ! -z $3 ]]; then
-        ssh_host_command="$2"
+        server_ip="$2"
         pgrep_pattern="$3"
     else
         pgrep_pattern="$2"
     fi
     local command_prefix=""
+    if [[ ! -z $server_ip ]]; then
+        command_prefix="ssh -i $key_file ubuntu@$server_ip"
+    fi
     if [[ ! $server =~ jmeter.* ]]; then
-        declare -a pids=($($ssh_host_command pgrep -f "$pgrep_pattern" || echo ""))
+        declare -a pids=($($command_prefix pgrep -f "$pgrep_pattern" || echo ""))
         if [[ ${#pids[@]} -gt 0 ]]; then
             echo "Start collecting perf stats on the processes matching the pattern \"$pgrep_pattern\". PIDs found: ${pids[@]}"
-            $command_prefix $script_dir/../common/perf-stat-start.sh -p $pgrep_pattern
+            $command_prefix sudo bash $script_dir/../common/perf-stat-start.sh -p $pgrep_pattern
         fi
     fi
 }
@@ -212,8 +215,8 @@ function write_server_metrics() {
     echo "Writing server metrics for $server. Process pattern: $pgrep_pattern, SSH host: ${ssh_host:-N/A}"
     local command_prefix=""
     export LC_TIME=C
-    local sar_yesterday_file="/var/log/sa/sa$(date +%d -d yesterday)"
-    local sar_today_file="/var/log/sa/sa$(date +%d)"
+    local sar_yesterday_file="/var/log/sysstat/sa/sa$(date +%d -d yesterday)"
+    local sar_today_file="/var/log/sysstat/sa/sa$(date +%d)"
     local local_sar_yesterday_file="${metrics_location}/${server}_$(basename $sar_yesterday_file)"
     local local_sar_today_file="${metrics_location}/${server}_$(basename $sar_today_file)"
     if [[ ! -z $ssh_host ]]; then

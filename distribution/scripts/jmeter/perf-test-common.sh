@@ -222,7 +222,7 @@ done
 #     done
 
 # Validate options
-key_file=$(find /home/ubuntu/ -maxdepth 1 -type f -name "*.pem")
+export key_file=$(echo $(find /home/ubuntu/ -maxdepth 1 -type f -name "*.pem"))
 netty_ssh_command="ssh -i $key_file -o "StrictHostKeyChecking=no" -T ubuntu@$netty_backend_ip"
 
 number_regex='^[0-9]+$'
@@ -570,7 +570,7 @@ function test_scenarios() {
                             echo "Starting Backend Service. Delay: $sleep_time, Additional Flags: ${backend_flags:-N/A}"
                             $netty_ssh_command "./Perf_dist/netty-service/netty-start.sh -m $netty_service_heap_size -w \
                                 -- ${backend_flags} --delay $sleep_time"
-                            collect_server_metrics netty "${netty_ssh_command}" netty
+                            collect_server_metrics netty "${netty_backend_ip}" netty
                         fi
 
                         declare -ag jmeter_params=("users=$users_per_jmeter" "duration=$test_duration")
