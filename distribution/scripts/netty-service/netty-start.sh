@@ -65,20 +65,20 @@ fi
 
 if pgrep -f "$service_name" >/dev/null; then
     echo "Shutting down Netty"
-    pkill -f $service_name
+    sudo pkill -f $service_name
 fi
 
 gc_log_file=./logs/nettygc.log
 
 if [[ -f $gc_log_file ]]; then
     echo "GC Log exists. Moving $gc_log_file to /tmp"
-    mv $gc_log_file /tmp/
+   sudo mv $gc_log_file /tmp/
 fi
 
 mkdir -p logs
 
 echo "Starting Netty"
-nohup java -Xms${heap_size} -Xmx${heap_size} -XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:$gc_log_file \
+sudo nohup java -Xms${heap_size} -Xmx${heap_size} -XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:$gc_log_file \
     -jar $service_name-${performance.common.version}.jar $netty_service_flags >netty.out 2>&1 &
 
 if [ "$wait_listen" = true ]; then
