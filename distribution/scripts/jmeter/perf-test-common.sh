@@ -636,21 +636,21 @@ function test_scenarios() {
                             done
                         fi
                         if [[ $sleep_time -ge 0 ]]; then
-                            write_server_metrics netty $backend_ssh_host netty
+                            write_server_metrics netty $netty_ssh_command netty
                         fi
 
                         if [[ -f ${report_location}/results.jtl ]]; then
                             # Delete the original JTL file to save space.
                             # Can merge files using the command: awk 'FNR==1 && NR!=1{next;}{print}'
                             # However, the merged file may not be same as original and that should be okay
-                            $HOME/jtl-splitter/jtl-splitter.sh -- -f ${report_location}/results.jtl -d -t $warmup_time -u SECONDS -s
+                            $HOME/Perf_dist/jtl-splitter/jtl-splitter.sh -- -f ${report_location}/results.jtl -d -t $warmup_time -u SECONDS -s
                             echo "Zipping JTL files in ${report_location}"
                             zip -jm ${report_location}/jtls.zip ${report_location}/results*.jtl
                         fi
 
                         if [[ $sleep_time -ge 0 ]]; then
-                            download_file $backend_ssh_host netty-service/logs/netty.log netty.log
-                            download_file $backend_ssh_host netty-service/logs/nettygc.log netty_gc.log
+                            download_file $netty_ssh_command netty-service/logs/netty.log netty.log
+                            download_file $netty_ssh_command netty-service/logs/nettygc.log netty_gc.log
                         fi
                         if [[ $jmeter_servers -gt 1 ]]; then
                             for jmeter_ssh_host in ${jmeter_ssh_hosts[@]}; do

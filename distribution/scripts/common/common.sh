@@ -81,11 +81,13 @@ function get_ssh_hostname() {
 }
 
 function download_file() {
-    local server=$1
-    local remote_file=$2
-    local local_file_name=$3
+    local ssh_command=$1
+    local server=$2
+    local remote_file=$3
+    local local_file_name=$4
+    local scp_command=$(echo "$ssh_command" | sed "s/ssh/scp -qp/")
     echo "Downloading $remote_file from $server to $local_file_name"
-    if scp -qp $server:$remote_file ${report_location}/$local_file_name; then
+    if ${scp_command}:$remote_file ${report_location}/$local_file_name; then
         echo "File transfer succeeded."
     else
         echo "WARNING: File transfer failed!"
@@ -204,10 +206,10 @@ function write_server_metrics() {
     local server=$1
     local metrics_location="${report_location}/${server}"
     mkdir -p $metrics_location
-    local ssh_host
+    local ssh_command
     local pgrep_pattern
     if [[ ! -z $3 ]]; then
-        ssh_host="$2"
+        ssh_command="$2"
         pgrep_pattern="$3"
     else
         pgrep_pattern="$2"
@@ -220,8 +222,9 @@ function write_server_metrics() {
     local local_sar_yesterday_file="${metrics_location}/${server}_$(basename $sar_yesterday_file)"
     local local_sar_today_file="${metrics_location}/${server}_$(basename $sar_today_file)"
     if [[ ! -z $ssh_host ]]; then
-        command_prefix="ssh -o SendEnv=LC_TIME $ssh_host"
-        download_file $server $sar_yesterday_file ${server}/$(basename $local_sar_yesterday_file)
+        command_prefix=$(echo "$ssh_command" | sed "s/ssh/ssh -o SendEnv=LC_TIME/")
+        # command_prefix="ssh -o SendEnv=LC_TIME $ssh_host"
+        download_file $ssh_command $server $sar_yesterday_file ${server}/$(basename $local_sar_yesterday_file)
         download_file $server $sar_today_file ${server}/$(basename $local_sar_today_file)
         $command_prefix $script_dir/../common/perf-stat-stop.sh
         download_file $server /tmp/perf.csv ${server}/${server}_perf.csv
