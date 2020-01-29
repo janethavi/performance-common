@@ -636,7 +636,7 @@ function test_scenarios() {
                             done
                         fi
                         if [[ $sleep_time -ge 0 ]]; then
-                            write_server_metrics netty $netty_ssh_command netty
+                            write_server_metrics netty "$netty_ssh_command" netty
                         fi
 
                         if [[ -f ${report_location}/results.jtl ]]; then
@@ -660,7 +660,7 @@ function test_scenarios() {
                             done
                         fi
 
-                        after_execute_test_scenario
+                        after_execute_test_scenario $report_location
 
                         local current_execution_duration="$(measure_time $start_time)"
                         echo -n "# Completed the performance test."

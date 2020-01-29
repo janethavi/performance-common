@@ -81,8 +81,8 @@ function get_ssh_hostname() {
 }
 
 function download_file() {
-    local ssh_command=$1
-    local server=$2
+    local server=$1
+    local ssh_command=$2
     local remote_file=$3
     local local_file_name=$4
     local scp_command=$(echo "$ssh_command" | sed "s/ssh/scp -qp/")
@@ -214,20 +214,20 @@ function write_server_metrics() {
     else
         pgrep_pattern="$2"
     fi
-    echo "Writing server metrics for $server. Process pattern: $pgrep_pattern, SSH host: ${ssh_host:-N/A}"
+    echo "Writing server metrics for $server. Process pattern: $pgrep_pattern, SSH host: ${ssh_command:-N/A}"
     local command_prefix=""
     export LC_TIME=C
     local sar_yesterday_file="/var/log/sysstat/sa$(date +%d -d yesterday)"
     local sar_today_file="/var/log/sysstat/sa$(date +%d)"
     local local_sar_yesterday_file="${metrics_location}/${server}_$(basename $sar_yesterday_file)"
     local local_sar_today_file="${metrics_location}/${server}_$(basename $sar_today_file)"
-    if [[ ! -z $ssh_host ]]; then
+    if [[ ! -z $ssh_command ]]; then
         command_prefix=$(echo "$ssh_command" | sed "s/ssh/ssh -o SendEnv=LC_TIME/")
         # command_prefix="ssh -o SendEnv=LC_TIME $ssh_host"
-        download_file $ssh_command $server $sar_yesterday_file ${server}/$(basename $local_sar_yesterday_file)
-        download_file $server $sar_today_file ${server}/$(basename $local_sar_today_file)
+        download_file $server "$ssh_command" $sar_yesterday_file ${server}/$(basename $local_sar_yesterday_file)
+        download_file $server "$ssh_command" $sar_today_file ${server}/$(basename $local_sar_today_file)
         $command_prefix $script_dir/../common/perf-stat-stop.sh
-        download_file $server /tmp/perf.csv ${server}/${server}_perf.csv
+        download_file $server "$ssh_command" /tmp/perf.csv ${server}/${server}_perf.csv
     else
         if [[ -f $sar_yesterday_file ]]; then
             echo "Copying $sar_yesterday_file to $local_sar_yesterday_file..."
