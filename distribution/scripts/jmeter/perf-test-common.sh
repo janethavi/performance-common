@@ -508,7 +508,7 @@ function initialize_test() {
         fi
 
         if declare -F initialize >/dev/null 2>&1; then
-            initialize
+            initialize "${apim_ip_array[@]}"
         fi
     fi
 }
@@ -586,7 +586,7 @@ function test_scenarios() {
                             done
                         fi
 
-                        export JVM_ARGS="-Xms$jmeter_client_heap_size -Xmx$jmeter_client_heap_size -XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:$report_location/jmeter_gc.log $JMETER_JVM_ARGS"
+                        export JVM_ARGS="-Xms$jmeter_client_heap_size -Xmx$jmeter_client_heap_size -XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:$report_location/jmeter/jmeter_gc.log $JMETER_JVM_ARGS"
 
                         local jmeter_command="jmeter -n -t $script_dir/${jmx_file} -j $report_location/jmeter.log $jmeter_remote_args"
                         if [[ $jmeter_servers -gt 1 ]]; then
@@ -649,8 +649,8 @@ function test_scenarios() {
                         fi
 
                         if [[ $sleep_time -ge 0 ]]; then
-                            download_file $netty_ssh_command netty-service/logs/netty.log netty.log
-                            download_file $netty_ssh_command netty-service/logs/nettygc.log netty_gc.log
+                            download_file netty "$netty_ssh_command" Perf_dist/netty-service/logs/netty.log netty/netty.log
+                            download_file netty "$netty_ssh_command" Perf_dist/netty-service/logs/nettygc.log netty/netty_gc.log
                         fi
                         if [[ $jmeter_servers -gt 1 ]]; then
                             for jmeter_ssh_host in ${jmeter_ssh_hosts[@]}; do

@@ -380,9 +380,9 @@ function get_value_from_gc_summary() {
 
 function add_gc_summary_details() {
     local server="$1"
-    local gc_log_file="${current_dir}/${server}_gc.log"
+    local gc_log_file="${current_dir}/${server}/${server}_gc.log"
     if [[ -f $gc_log_file ]]; then
-        local gc_summary_file="${current_dir}/${server}_gc.txt"
+        local gc_summary_file="${current_dir}/${server}/${server}_gc.txt"
         echo "Reading $gc_log_file"
         java -Xms128m -Xmx128m -jar $gcviewer_jar_path $gc_log_file $gc_summary_file -t SUMMARY &>/dev/null
         columns+=("$(get_value_from_gc_summary $gc_summary_file throughput)")

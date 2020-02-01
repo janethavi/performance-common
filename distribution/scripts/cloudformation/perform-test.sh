@@ -109,6 +109,7 @@ for ((i = 0; i < $number_of_product_nodes; i++)); do
 done
 
 # ssh to jmeter-client and scp Perf_dist to product nodes
+echo "Copying Performance-distribution to product nodes"
 $ssh_command_prefix ubuntu@$jmeter_client_ip bash /home/ubuntu/Perf_dist/setup/setup_perf_dist.sh "${apim_ips[@]}"
 
 # Allow to change the script name
@@ -274,6 +275,9 @@ run_perf_tests_in_stack
 #Get GCViewer from S3
 gcviewer_jar_path=$results_dir/gcviewer-1.35.jar
 aws s3 cp s3://performance-test-archives/gcviewer-1.35.jar $gcviewer_jar_path
+echo "Coppying results directory to TESTGRID SLAVE"
+scp -i $key_file ubuntu@$jmeter_client_ip:/home/ubuntu/results.zip $results_dir
+unzip $results_dir/results.zip -d $results_dir
 if [ $distributed_jmeter_deployment ]; then
     max_jmeter_servers=2
 else
@@ -282,12 +286,18 @@ fi
 application_name="WSO2 API Manager"
 metrics_file_prefix="apim"
 echo "Creating summary.csv..."
-# Create warmup summary CSV
-$script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d $results_dir/results -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -w -o summary-warmup.csv
-# # Create measurement summary CSV
-$script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d $results_dir/results -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -o summary.csv
-# # Zip results
-# zip -9qmr results-all.zip results/
+for apim_node in ${#apim_ips[@]}; do
+    metrics_file_prefix="apim${apim_node}"
+    # Create warmup summary CSV
+    $script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d $results_dir/results -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -w -o summary-warmup-apim-${apim_node}.csv
+    # # Create measurement summary CSV
+    $script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d $results_dir/results -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -o summary-apim-${apim_node}.csv
+    # # Zip results
+    # zip -9qmr results-all.zip results/
+done
+
+paste -d, summary-warmup-apim-1.csv summary-warmup-apim-2.csv > summary-warmup.csv
+paste -d, summary-apim-1.csv summary-apim-2.csv > summary.csv
 
 # Use following to get all column names:
 echo "Available column names:"
