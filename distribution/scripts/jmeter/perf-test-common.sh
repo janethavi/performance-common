@@ -93,8 +93,6 @@ declare -a include_scenario_names
 # Scenario names to exclude
 declare -a exclude_scenario_names
 
-backend_ssh_host=netty
-
 # JMeter Servers
 # If jmeter_servers = 1, only client will be used. If jmeter_servers > 1, remote JMeter servers will be used.
 default_jmeter_servers=1
@@ -588,7 +586,7 @@ function test_scenarios() {
 
                         export JVM_ARGS="-Xms$jmeter_client_heap_size -Xmx$jmeter_client_heap_size -XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:$report_location/jmeter/jmeter_gc.log $JMETER_JVM_ARGS"
 
-                        local jmeter_command="jmeter -n -t $script_dir/${jmx_file} -j $report_location/jmeter.log $jmeter_remote_args"
+                        local jmeter_command="jmeter -n -t $script_dir/${jmx_file} -j $report_location/jmeter/jmeter.log $jmeter_remote_args"
                         if [[ $jmeter_servers -gt 1 ]]; then
                             jmeter_command+=" -R $(
                                 IFS=","

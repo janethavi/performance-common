@@ -114,25 +114,6 @@ $ssh_command_prefix ubuntu@$jmeter_client_ip bash /home/ubuntu/Perf_dist/setup/s
 
 # Allow to change the script name
 run_performance_tests_script_name=${run_performance_tests_script_name:-run-performance-tests.sh}
-# estimate_command="$script_dir/../jmeter/${run_performance_tests_script_name} -t -m $application_heap -s $backend_sleep_time -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -u '${concurrent_users_array[@]}' -b '50 1024' "
-#estimate_command="$script_dir/../jmeter/${run_performance_tests_script_name}"
-# echo "Estimating total time for performance tests: $estimate_command"
-# Estimating this script will also validate the options. It's important to validate options before creating the stack.
-# $estimate_command
-# echo "Estimating total time for performance tests: "
-# if [[ $distributed_jmeter_deployment ]]; then
-#     echo "Calculating the estimated time with distributed jmeter deployment "
-#     $script_dir/../jmeter/run-performance-tests.sh -t -m $application_heap -s $backend_sleep_time -d $test_duration \
-#     -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -n $num_jmeter_servers -b "${message_sizes_array[*]}" -u "${concurrent_users_array[*]}"
-# else
-#     echo "Calculating the estimated time without distributed jmeter deployment "
-#     $script_dir/../jmeter/run-performance-tests.sh -t -m $application_heap -s $backend_sleep_time -d $test_duration \
-#     -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -b "${message_sizes_array[*]}" -u "${concurrent_users_array[*]}"
-# fi
-
-# Save test metadata
-# mv test-metadata.json $results_dir
-# mv test-duration.json $results_dir
 
 function download_files() {
     local stack_id="$1"
@@ -175,46 +156,6 @@ function download_files() {
     fi
 }
 
-
-# function save_logs_and_delete_stack() {
-#     local stack_id="$1"
-#     local stack_name="$2"
-#     local stack_results_dir="$3"
-#     # Get stack events
-#     local stack_events_json=$stack_results_dir/stack-events.json
-#     echo "Saving $stack_name stack events to $stack_events_json"
-#     aws cloudformation describe-stack-events --stack-name $stack_id --no-paginate --output json >$stack_events_json
-#     # Check whether there are any failed events
-#     cat $stack_events_json | jq '.StackEvents | .[] | select ( .ResourceStatus == "CREATE_FAILED" )'
-
-#     # Download log events
-#     local log_group_name="${stack_name}-CloudFormationLogs"
-#     local log_streams_json=$stack_results_dir/log-streams.json
-#     if aws logs describe-log-streams --log-group-name $log_group_name --output json >$log_streams_json; then
-#         local log_events_file=$stack_results_dir/log-events.log
-#         for log_stream in $(cat $log_streams_json | jq -r '.logStreams | .[] | .logStreamName'); do
-#             echo "[$log_group_name] Downloading log events from stream: $log_stream..."
-#             echo "#### The beginning of log events from $log_stream" >>$log_events_file
-#             aws logs get-log-events --log-group-name $log_group_name --log-stream-name $log_stream --output text >>$log_events_file
-#             echo -ne "\n\n#### The end of log events from $log_stream\n\n" >>$log_events_file
-#         done
-#     else
-#         echo "WARNING: There was an error getting log streams from the log group $log_group_name. Check whether AWS CloudWatch logs are enabled."
-#     fi
-
-#     # Download files
-#     download_files ${stack_id} ${stack_name} ${stack_results_dir}
-
-#     if [ "$SUSPEND" = true ]; then
-#         echo "SUSPEND is true, holding the deletion of stack: $stack_id"
-#         if ! sleep infinity; then
-#             echo "Sleep terminated! Proceeding to delete the stack: $stack_id"
-#         fi
-#     fi
-
-#     #delete_stack $stack_id
-# }
-
 function run_perf_tests_in_stack() {
     jmeter_ssh_command="ssh -i $key_file -o "StrictHostKeyChecking=no" -T ubuntu@$jmeter_client_ip"
     # Run performance tests
@@ -229,56 +170,17 @@ function run_perf_tests_in_stack() {
         -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -a $netty_backend_ip \
         -c '${apim_ips[*]}' -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
     fi
-    # echo "Downloading results-without-jtls.zip"
-    # # Download results-without-jtls.zip
-    # scp -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip:results-without-jtls.zip $stack_results_dir
-    # echo "Downloading results.zip"
-    # # Download results.zip
-    # scp -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$jmeter_client_ip:results.zip $stack_results_dir
-
-    # if [[ ! -f $stack_results_dir/results-without-jtls.zip ]]; then
-    #     echo "Failed to download the results-without-jtls.zip"
-    #     exit 500
-    # fi
-
-    # if [[ ! -f $stack_results_dir/results.zip ]]; then
-    #     echo "Failed to download the results.zip"
-    #     exit 500
-    # fi
 }
-# export AWS_DEFAULT_REGION=us-east-2
+
 run_perf_tests_in_stack 
-
-# See current jobs
-# echo "Jobs: "
-# # jobs
-# echo "Waiting till all performance test jobs are completed..."
-# # Wait till parallel tests complete
-# wait
-
-# declare -a system_information_files
-
-# # Extract all results.
-# for ((i = 0; i < ${#performance_test_options[@]}; i++)); do
-#     stack_results_dir="$results_dir/results-$(($i + 1))"
-#     unzip -nq ${stack_results_dir}/results-without-jtls.zip -x '*/test-metadata.json' -d $results_dir
-#     system_info_file="${stack_results_dir}/files/${ec2_instance_name}/system-info.json"
-#     if [[ -f $system_info_file ]]; then
-#         system_information_files+=("$system_info_file")
-#     fi
-# done
-# echo "Combining system information in following files: ${system_information_files[@]}"
-# Join json files containing system information and create an array
-# jq -s . "${system_information_files[@]}" >all-system-info.json
-# Copy metadata before creating CSV
-# cp cf-test-metadata.json test-metadata.json results
-#Get GCViewer from S3
+# Creating summaries after running the test
 gcviewer_jar_path=$results_dir/gcviewer-1.35.jar
 aws s3 cp s3://performance-test-archives/gcviewer-1.35.jar $gcviewer_jar_path
 echo "Coppying results directory to TESTGRID SLAVE"
 scp -i $key_file ubuntu@$jmeter_client_ip:/home/ubuntu/results.zip $results_dir
 unzip $results_dir/results.zip -d $results_dir
-if [ $distributed_jmeter_deployment ]; then
+
+if [ $num_jmeter_servers -ge 0 ]; then
     max_jmeter_servers=2
 else
     max_jmeter_servers=1
@@ -299,6 +201,13 @@ done
 paste -d, summary-warmup-apim-1.csv summary-warmup-apim-2.csv > summary-warmup.csv
 paste -d, summary-apim-1.csv summary-apim-2.csv > summary.csv
 
+for apim_node in ${#apim_ips[@]}; do
+    sudo rm -f summary-warmup-apim-${apim_node}.csv
+    summary-apim-${apim_node}.csv
+done
+
+sudo rm -r $results_dir/gcviewer-1.35.jar
+
 # Use following to get all column names:
 echo "Available column names:"
 while read -r line; do echo "\"$line\""; done < <($script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -n "${application_name}" -j $max_jmeter_servers -i -x)
@@ -309,10 +218,6 @@ declare -a column_names
 while read column_name; do
     column_names+=("$column_name")
 done < <(get_columns)
-
-# echo "Creating summary results markdown file... Using column names: ${column_names[@]}"
-# $script_dir/../jmeter/create-summary-markdown.py --json-parameters parameters=cf-test-metadata.json,parameters=test-metadata.json,instances=all-system-info.json \
-#     --column-names "${column_names[@]}"
 
 function print_summary() {
     cat $1 | cut -d, -f 1-13 | column -t -s,

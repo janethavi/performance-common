@@ -70,10 +70,10 @@ fi
 
 gc_log_file=./logs/nettygc.log
 
-if [[ -f $gc_log_file ]]; then
-    echo "GC Log exists. Moving $gc_log_file to /tmp"
-   sudo mv $gc_log_file /tmp/
-fi
+# if [[ -f $gc_log_file ]]; then
+#     echo "GC Log exists. Moving $gc_log_file to /tmp"
+#    sudo mv $gc_log_file /tmp/
+# fi
 
 mkdir -p logs
 
