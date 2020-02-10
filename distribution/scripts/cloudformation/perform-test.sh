@@ -85,16 +85,11 @@ sudo chmod 400 $key_file
 scp_command_prefix="scp -i $key_file -o "StrictHostKeyChecking=no""
 ssh_command_prefix="ssh -i $key_file -o "StrictHostKeyChecking=no""
 
-# scp key_file to jmeter-client/jmeter-servers
-if [[ $num_jmeter_servers -gt 0 ]]; then
-    for ((i = 0; i < $num_jmeter_servers; i++)); do
-        $scp_command_prefix $key_file ubuntu@$jmeter_client_ip:/home/ubuntu
-    done
-else
-    $scp_command_prefix $key_file ubuntu@$jmeter_client_ip:/home/ubuntu
-fi
+# scp key_file to jmeter-client
+$scp_command_prefix $key_file ubuntu@$jmeter_client_ip:/home/ubuntu
+
 # Starting Backend
-ssh -i $key_file -o "StrictHostKeyChecking=no" ubuntu@$netty_backend_ip sudo bash /home/ubuntu/Perf_dist/netty-service/netty-start.sh -m $netty_heap -w
+$ssh_command_prefix ubuntu@$netty_backend_ip sudo bash /home/ubuntu/Perf_dist/netty-service/netty-start.sh -m $netty_heap -w
 
 # Create APIS
 echo "SSH to JMeter Client"
