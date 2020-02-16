@@ -97,8 +97,6 @@ declare -a exclude_scenario_names
 # If jmeter_servers = 1, only client will be used. If jmeter_servers > 1, remote JMeter servers will be used.
 default_jmeter_servers=1
 jmeter_servers=$default_jmeter_servers
-# JMeter SSH hosts array depending on the number of servers. For example, jmeter1 and jmeter2 for two servers.
-declare -a jmeter_ssh_hosts
 
 payload_type=ARRAY
 # Estimate flag
@@ -149,13 +147,16 @@ function usage() {
 
 # Reset getopts
 OPTIND=0
-while getopts "u:b:s:a:c:m:d:w:n:j:k:l:i:e:tp:h:" opts; do
+while getopts "u:b:s:a:c:m:d:w:n:f:j:k:l:i:e:tp:h:" opts; do
     case $opts in
     u)
         concurrent_users_array+=("${OPTARG}")
         ;;
     b)
         message_sizes_array+=("${OPTARG}")
+        ;;
+    f)
+        jmeter_servers_ip_array=("${OPTARG}")
         ;;
     s)
         backend_sleep_times_array+=("${OPTARG}")
@@ -210,19 +211,9 @@ while getopts "u:b:s:a:c:m:d:w:n:j:k:l:i:e:tp:h:" opts; do
     esac
 done
 
-# [[ $A_MY_ARRAY =~ ^declare ]] && eval $A_MY_ARRAY
-# [[ $B_MY_ARRAY =~ ^declare ]] && eval $B_MY_ARRAY
-
-#   for i in "${!concurrent_users_array[@]}"
-#     do
-#         echo "key :" $i
-#         echo "value:" ${concurrent_users_array[$i]}
-#     done
+export key_file=$(echo $(find /home/ubuntu/ -maxdepth 1 -type f -name "*.pem"))
 
 # Validate options
-export key_file=$(echo $(find /home/ubuntu/ -maxdepth 1 -type f -name "*.pem"))
-netty_ssh_command="ssh -i $key_file -o "StrictHostKeyChecking=no" -T ubuntu@$netty_backend_ip"
-
 number_regex='^[0-9]+$'
 heap_regex='^[0-9]+[MG]$'
 
@@ -336,11 +327,19 @@ if ! [[ $netty_service_heap_size =~ $heap_regex ]]; then
     exit 1
 fi
 
-declare -a jmeter_hosts
-for ((c = 1; c <= $jmeter_servers; c++)); do
-    jmeter_ssh_hosts+=("jmeter$c")
-    jmeter_hosts+=($(get_ssh_hostname jmeter$c))
+declare -a jmeter_server_ssh_commands
+if [[ jmeter_servers -gt 0 ]]; then
+    for ip in  ${jmeter_servers_ip_array[@]}; do
+        ssh_command="ssh -i $key_file -o "StrictHostKeyChecking=no" -T ubuntu@$ip"
+        jmeter_server_ssh_commands+=("${ssh_command}")
+    done
+fi
+
+declare -a jmeter_ssh_hosts
+for ip in ${jmeter_servers_ip_array[@]}; do
+    jmeter_ssh_hosts+=("${ip}")
 done
+netty_ssh_command="ssh -i $key_file -o "StrictHostKeyChecking=no" -T ubuntu@$netty_backend_ip"
 
 function record_scenario_duration() {
     local scenario_name="$1"
@@ -492,9 +491,9 @@ function initialize_test() {
         done
 
         if [[ $jmeter_servers -gt 1 ]]; then
-            for jmeter_ssh_host in ${jmeter_ssh_hosts[@]}; do
+            for jmeter_ssh_host in "${jmeter_server_ssh_commands[@]}"; do
                 echo "Generating Payloads in $jmeter_ssh_host"
-                ssh $jmeter_ssh_host "./Perf_dist/payloads/generate-payloads.sh" -p $payload_type ${payload_sizes[@]}
+                $jmeter_ssh_host "./Perf_dist/payloads/generate-payloads.sh" -p $payload_type ${payload_sizes[@]}
             done
         else
             pushd $HOME
@@ -506,7 +505,7 @@ function initialize_test() {
         fi
 
         if declare -F initialize >/dev/null 2>&1; then
-            initialize "${apim_ip_array[@]}"
+            initialize "${apim_ip_array[@]}" "${jmeter_servers_ip_array[@]}"
         fi
     fi
 }
@@ -577,10 +576,12 @@ function test_scenarios() {
 
                         if [[ $jmeter_servers -gt 1 ]]; then
                             echo "Starting Remote JMeter servers"
-                            for ix in ${!jmeter_ssh_hosts[@]}; do
-                                echo "Starting Remote JMeter server. SSH Host: ${jmeter_ssh_hosts[ix]}, IP: ${jmeter_hosts[ix]}, Path: $HOME, Heap: $jmeter_server_heap_size"
-                                ssh ${jmeter_ssh_hosts[ix]} "./Perf_dist/jmeter/jmeter-server-start.sh -n ${jmeter_hosts[ix]} -i $HOME -m $jmeter_server_heap_size -- $JMETER_JVM_ARGS"
-                                collect_server_metrics ${jmeter_ssh_hosts[ix]} ${jmeter_ssh_hosts[ix]} ApacheJMeter.jar
+                            n=1
+                            for ix in ${!jmeter_server_ssh_commands[@]}; do
+                                echo "Starting Remote JMeter server. SSH Host: ${jmeter_server_ssh_commands[$ix]}, IP: ${jmeter_ssh_hosts[$ix]}, Path: $HOME, Heap: $jmeter_server_heap_size"
+                                ${jmeter_server_ssh_commands[ix]} "./Perf_dist/jmeter/jmeter-server-start.sh -n ${jmeter_ssh_hosts[$ix]} -i $HOME/Resources -m $jmeter_server_heap_size -- $JMETER_JVM_ARGS"
+                                collect_server_metrics "jmeter-server-${n}" "${jmeter_ssh_hosts[$ix]}" ApacheJMeter.jar
+                                ((n++))
                             done
                         fi
 
@@ -590,7 +591,7 @@ function test_scenarios() {
                         if [[ $jmeter_servers -gt 1 ]]; then
                             jmeter_command+=" -R $(
                                 IFS=","
-                                echo "${jmeter_hosts[*]}"
+                                echo "${jmeter_ssh_hosts[*]}"
                             ) -X"
                             for param in ${jmeter_params[@]}; do
                                 jmeter_command+=" -G$param"
@@ -629,8 +630,10 @@ function test_scenarios() {
 
                         write_server_metrics jmeter ApacheJMeter.jar
                         if [[ $jmeter_servers -gt 1 ]]; then
-                            for jmeter_ssh_host in ${jmeter_ssh_hosts[@]}; do
-                                write_server_metrics $jmeter_ssh_host $jmeter_ssh_host ApacheJMeter.jar
+                            n=1
+                            for jmeter_server_ssh in "${jmeter_server_ssh_commands[@]}"; do
+                                write_server_metrics "jmeter-server-${n}" "$jmeter_server_ssh" ApacheJMeter.jar
+                                ((n++))
                             done
                         fi
                         if [[ $sleep_time -ge 0 ]]; then
@@ -651,10 +654,12 @@ function test_scenarios() {
                             download_file netty "$netty_ssh_command" Perf_dist/netty-service/logs/nettygc.log netty/netty_gc.log
                         fi
                         if [[ $jmeter_servers -gt 1 ]]; then
-                            for jmeter_ssh_host in ${jmeter_ssh_hosts[@]}; do
-                                download_file $jmeter_ssh_host jmetergc.log ${jmeter_ssh_host}_gc.log
-                                download_file $jmeter_ssh_host server.out ${jmeter_ssh_host}_server.out
-                                download_file $jmeter_ssh_host jmeter-server.log ${jmeter_ssh_host}_server.log
+                            n=1
+                            for jmeter_ssh_host in "${jmeter_server_ssh_commands[@]}"; do
+                                download_file jmeter-server-${n} "$jmeter_ssh_host" jmetergc.log jmeter-server-${n}/jmeter-server-${n}_gc.log
+                                download_file jmeter-server-${n} "$jmeter_ssh_host" server.out jmeter-server-${n}/jmeter-server-${n}_server.out
+                                download_file jmeter-server-${n} "$jmeter_ssh_host" jmeter-server.log jmeter-server-${n}/jmeter-server-${n}_server.log
+                                ((n++))
                             done
                         fi
 

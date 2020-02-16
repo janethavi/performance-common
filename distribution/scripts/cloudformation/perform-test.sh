@@ -100,7 +100,7 @@ $ssh_command_prefix ubuntu@$jmeter_client_ip sudo bash /home/ubuntu/Perf_dist/se
 echo "Getting the IP addresses of the Product nodes"
 declare -a apim_ips
 for ((i = 0; i < $number_of_product_nodes; i++)); do
-    apim_ips[i]=$(python $script_dir/../apim/private_ip_extractor.py $region $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY WSO2APIMInstance$((i+1)))
+    apim_ips+=($(python $script_dir/../apim/private_ip_extractor.py $region $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY WSO2APIMInstance$((i+1)) | tr -d '[],'))
 done
 
 # ssh to jmeter-client and scp Perf_dist to product nodes
@@ -152,7 +152,7 @@ function download_files() {
 }
 
 function run_perf_tests_in_stack() {
-    jmeter_ssh_command="ssh -i $key_file -o "StrictHostKeyChecking=no" -T ubuntu@$jmeter_client_ip"
+    jmeter_client_ssh_command="ssh -i $key_file -o "StrictHostKeyChecking=no" -T ubuntu@$jmeter_client_ip"
     # Run performance tests
     if [[ $num_jmeter_servers -gt 0 ]]; then
         echo "Running the performace test with distributed jmeter deployment"
@@ -161,18 +161,26 @@ function run_perf_tests_in_stack() {
         -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
     else
         echo "Running the performace test without distributed jmeter deployment"
-        $jmeter_ssh_command "$HOME/Perf_dist/jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time \
+        $jmeter_client_ssh_command "$HOME/Perf_dist/jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time \
         -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -a $netty_backend_ip \
         -c '${apim_ips[*]}' -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
+    else
+        echo "Running the performace test with distributed jmeter deployment"
+        echo "Getting the IP Addresses of JMeter Servers"
+        declare -a jmeter_client_ips
+        jmeter_client_ips=($(python $script_dir/../apim/private_ip_extractor.py $region $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY Jmeter-Server | tr -d '[],'))
+        $jmeter_client_ssh_command "$HOME/Perf_dist/jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time \
+        -d $test_duration -w $warm_up_time -j $jmeter_server_heap -n $num_jmeter_servers -k $jmeter_client_heap -l $netty_heap -a $netty_backend_ip \
+        -c '${apim_ips[*]}' -f '${jmeter_client_ips[@]}' -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"   
     fi
 }
 
-run_perf_tests_in_stack 
+run_perf_tests_in_stack
 # Creating summaries after running the test
 gcviewer_jar_path=$results_dir/gcviewer-1.35.jar
 aws s3 cp s3://performance-test-archives/gcviewer-1.35.jar $gcviewer_jar_path
 echo "Coppying results directory to TESTGRID SLAVE"
-scp -i $key_file ubuntu@$jmeter_client_ip:/home/ubuntu/results.zip $results_dir
+$scp_command_prefix ubuntu@jmeter_client_ip/home/ubuntu/results.zip $results_dir
 unzip $results_dir/results.zip -d $results_dir
 
 if [ $num_jmeter_servers -ge 0 ]; then
