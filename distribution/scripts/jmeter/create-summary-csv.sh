@@ -571,7 +571,7 @@ for summary_json in $(find ${results_dir} -type f -name ${data_file} | sort -V);
             add_gc_summary_details jmeter
             if [ $jmeter_servers -gt 1 ]; then
                 for ((c = 1; c <= $jmeter_servers; c++)); do
-                    add_gc_summary_details jmeter$c
+                    add_gc_summary_details jmeter-server-$c
                 done
             fi
         fi

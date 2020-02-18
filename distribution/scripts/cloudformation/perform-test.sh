@@ -66,7 +66,8 @@ then
     mysql_username=${propArray[DBUsername]}
     mysql_password=${propArray[DBPassword]}
     region=${propArray[region]}
-    num_jmeter_servers=${propArray[NumberOfJmeterServers]}
+    num_jmeter_servers=${propArray[NumberOfJMeterServers]}
+    key_file=${propArray[keyFileLocation]}
     IFS=' '
 else
   echo "Error: testplan_prop.properties file not found."
@@ -78,10 +79,6 @@ pip3 install -r $script_dir/python-requirements.txt
 
 results_dir="Results-$(date +%Y%m%d%H%M%S)"
 mkdir $results_dir
-aws s3 cp s3://performance-test-archives/janeth-key.pem $script_dir/janeth-key.pem
-key_file=$script_dir/janeth-key.pem
-key_file=$(realpath $key_file)
-sudo chmod 400 $key_file
 scp_command_prefix="scp -i $key_file -o "StrictHostKeyChecking=no""
 ssh_command_prefix="ssh -i $key_file -o "StrictHostKeyChecking=no""
 
@@ -156,22 +153,17 @@ function run_perf_tests_in_stack() {
     # Run performance tests
     if [[ $num_jmeter_servers -gt 0 ]]; then
         echo "Running the performace test with distributed jmeter deployment"
-        $jmeter_ssh_command "$HOME/Perf_dist/jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time \
-        -d $test_duration -w $warm_up_time -j $jmeter_server_heap -n $num_jmeter_servers -k $jmeter_client_heap -l $netty_heap -a $netty_backend_ip \
-        -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
-    else
-        echo "Running the performace test without distributed jmeter deployment"
-        $jmeter_client_ssh_command "$HOME/Perf_dist/jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time \
-        -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -a $netty_backend_ip \
-        -c '${apim_ips[*]}' -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
-    else
-        echo "Running the performace test with distributed jmeter deployment"
         echo "Getting the IP Addresses of JMeter Servers"
         declare -a jmeter_client_ips
         jmeter_client_ips=($(python $script_dir/../apim/private_ip_extractor.py $region $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY Jmeter-Server | tr -d '[],'))
         $jmeter_client_ssh_command "$HOME/Perf_dist/jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time \
         -d $test_duration -w $warm_up_time -j $jmeter_server_heap -n $num_jmeter_servers -k $jmeter_client_heap -l $netty_heap -a $netty_backend_ip \
-        -c '${apim_ips[*]}' -f '${jmeter_client_ips[@]}' -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"   
+        -c '${apim_ips[*]}' -f '${jmeter_client_ips[@]}' -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
+    else
+        echo "Running the performace test without distributed jmeter deployment"
+        $jmeter_client_ssh_command "$HOME/Perf_dist/jmeter/${run_performance_tests_script_name} -m $application_heap -s $backend_sleep_time \
+        -d $test_duration -w $warm_up_time -j $jmeter_server_heap -k $jmeter_client_heap -l $netty_heap -a $netty_backend_ip \
+        -c '${apim_ips[*]}' -b '${message_sizes_array[*]}'  -u '${concurrent_users_array[*]}' " || echo "Remote test ssh command failed:"
     fi
 }
 
