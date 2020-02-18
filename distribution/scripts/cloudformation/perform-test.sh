@@ -78,6 +78,11 @@ source .venv/bin/activate
 pip3 install -r $script_dir/python-requirements.txt
 
 results_dir="Results-$(date +%Y%m%d%H%M%S)"
+aws s3 cp s3://performance-test-archives/janeth-key.pem $script_dir/janeth-key.pem
+key_file=$script_dir/janeth-key.pem
+key_file=$(realpath $key_file)
+sudo chmod 400 $key_file
+
 mkdir $results_dir
 scp_command_prefix="scp -i $key_file -o "StrictHostKeyChecking=no""
 ssh_command_prefix="ssh -i $key_file -o "StrictHostKeyChecking=no""
