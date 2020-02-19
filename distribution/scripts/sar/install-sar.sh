@@ -49,12 +49,12 @@ while getopts "h" opts; do
 done
 
 #Install sysstat
-apt-get install sysstat -f
+apt-get -y install sysstat
 sysstat_file=/etc/default/sysstat
 sed -i '/ENABLED/ s/false/true/' /etc/default/sysstat
 
 #Change interval to 1 minute
-sed -i 's/5-55/*/g' /etc/cron.d/sysstat 
+sed -i 's/5-55/*/g' /etc/cron.d/sysstat
 sed -i 's/10/1/g' /etc/cron.d/sysstat
 #Restart the service
 service sysstat restart

@@ -510,18 +510,6 @@ function initialize_test() {
     fi
 }
 
-function exit_handler() {
-    if [[ "$estimate" == false ]] && [[ -d results ]]; then
-        echo "Zipping results directory..."
-        # Create zip file without JTLs first (in case of limited disc space)
-        zip -9qr results-without-jtls.zip results/ -x '*jtls.zip'
-        zip -9qr results.zip results/
-    fi
-    print_durations
-}
-
-trap exit_handler EXIT
-
 function test_scenarios() {
     initialize_test
     local test_counter=0

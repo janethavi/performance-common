@@ -29,7 +29,6 @@ function command_exists() {
 
 function install_command() {
     echo "Installing $1"
-    sudo apt-get update
     sudo apt-get install $1
 }
 
@@ -37,15 +36,14 @@ function check_command() {
     if ! command_exists $1; then
         echo "$1 is not available"
         #exit 1
-        if [ "$1" == "python" ]; then 
+        if [ "$1" == "python" ]; then
+            echo "Installing $1"
             install_command python3
         elif [ "$1" == "ts" ]; then
             echo "Installing $1"
-            sudo apt-get update
             sudo apt-get -y install moreutils
         elif [ "$1" == "pip" ]; then
             echo "Installing $1"
-            sudo apt-get update
             sudo apt-get -y install python-pip
         else
             install_command $1
