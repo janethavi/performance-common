@@ -291,7 +291,7 @@ Outputs:
 Mappings:
   AMIRegions:
     us-east-2:
-      Ubuntu1804: ami-04a3377351a63855c
+      Ubuntu1804: ami-07b6676fcaf47c342
 Parameters:
   KeyPairName:
     Description: Key pair name

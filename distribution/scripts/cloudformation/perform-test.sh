@@ -144,8 +144,6 @@ fi
 $ssh_command_prefix ubuntu@$jmeter_client_ip "$HOME/Perf_dist/reports/report-generation.sh  '${application_name}'  '${metrics_file_prefix}' '${max_jmeter_servers}'"
 echo "Coppying results directory to TESTGRID SLAVE"
 $scp_command_prefix ubuntu@$jmeter_client_ip:/home/ubuntu/results.zip $results_dir
-unzip $results_dir/results.zip -d $results_dir
-sudo rm -r $results_dir/results.zip
 
 # paste -d, summary-warmup-apim-1.csv summary-warmup-apim-2.csv > summary-warmup.csv
 # paste -d, summary-apim-1.csv summary-apim-2.csv > summary.csv
