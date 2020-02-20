@@ -20,10 +20,32 @@
 script_dir=$(dirname "$0")
 script_dir=$(realpath $script_dir)
 
-metrics_file_prefix=$1
-application_name=$2
-max_jmeter_servers=$3
-create_csv_opts=$4
+while getopts "n:p:j:c:" opts; do
+    case $opts in
+    n)
+        application_name=("${OPTARG}")
+        ;;
+    p)
+        metrics_file_prefix=("${OPTARG}")
+        ;;
+    j)
+        max_jmeter_servers=("${OPTARG}")
+        ;;
+    c)
+        create_csv_opts=("${OPTARG}")
+        ;;        
+    h)
+        usage
+        exit 0
+        ;;
+    \?)
+        usage
+        exit 1
+        ;;
+    esac
+done
+shift "$((OPTIND - 1))"
+
 gcviewer_jar_path="/home/ubuntu/Resources/gcviewer-1.35.jar"
 results_dir="/home/ubuntu/results"
 
@@ -42,9 +64,9 @@ for n in {1..2}
 do
     metrics_file_prefix="$metrics_file_prefix${n}"
     # Create warmup summary CSV
-    $HOME/jmeter/create-summary-csv.sh ${create_csv_opts} -d $results_dir -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -w -o summary-warmup-apim-${n}.csv
+    $HOME/Perf_dist/jmeter/create-summary-csv.sh ${create_csv_opts} -d $results_dir -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -w -o summary-warmup-apim-${n}.csv
     mv $HOME/summary-warmup-apim-${n}.csv $results_dir
     # # Create measurement summary CSV
-    $HOME/jmeter/create-summary-csv.sh ${create_csv_opts} -d $results_dir -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -o summary-apim-${n}.csv
+    $HOME/Perf_dist/jmeter/create-summary-csv.sh ${create_csv_opts} -d $results_dir -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -o summary-apim-${n}.csv
     mv $HOME/summary-apim-${n}.csv $results_dir
 done

@@ -133,33 +133,19 @@ function run_perf_tests_in_stack() {
 
 run_perf_tests_in_stack
 # Creating summaries after running the test
-gcviewer_jar_path=$script_dir/gcviewer-1.35.jar
-aws s3 cp s3://performance-test-archives/gcviewer-1.35.jar $gcviewer_jar_path
-echo "Coppying results directory to TESTGRID SLAVE"
-$scp_command_prefix ubuntu@$jmeter_client_ip:/home/ubuntu/results.zip $results_dir
-unzip $results_dir/results.zip -d $results_dir
-sudo rm -r $results_dir/results.zip
-
+echo "Generating the reports from the results"
+application_name="WSO2 API Manager"
+metrics_file_prefix="apim"
 if [ $num_jmeter_servers -ge 0 ]; then
     max_jmeter_servers=2
 else
     max_jmeter_servers=1
 fi
-application_name="WSO2 API Manager"
-metrics_file_prefix="apim"
-echo "Creating summary.csv..."
-for n in {1..2}
-do
-    metrics_file_prefix="apim${n}"
-    # Create warmup summary CSV
-    $script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d $results_dir/results -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -w -o summary-warmup-apim-${n}.csv
-    mv $script_dir/../summary-warmup-apim-${n}.csv $results_dir
-    # # Create measurement summary CSV
-    $script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -d $results_dir/results -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -o summary-apim-${n}.csv
-     mv $script_dir/../summary-apim-${n}.csv $results_dir
-    # # Zip results
-    # zip -9qmr results-all.zip results/
-done
+$ssh_command_prefix ubuntu@$jmeter_client_ip "$HOME/Perf_dist/reports/report-generation.sh  '${application_name}'  '${metrics_file_prefix}' '${max_jmeter_servers}'"
+echo "Coppying results directory to TESTGRID SLAVE"
+$scp_command_prefix ubuntu@$jmeter_client_ip:/home/ubuntu/results.zip $results_dir
+unzip $results_dir/results.zip -d $results_dir
+sudo rm -r $results_dir/results.zip
 
 # paste -d, summary-warmup-apim-1.csv summary-warmup-apim-2.csv > summary-warmup.csv
 # paste -d, summary-apim-1.csv summary-apim-2.csv > summary.csv
