@@ -20,53 +20,27 @@
 script_dir=$(dirname "$0")
 script_dir=$(realpath $script_dir)
 
-while getopts "n:p:j:c:" opts; do
-    case $opts in
-    n)
-        application_name=("${OPTARG}")
-        ;;
-    p)
-        metrics_file_prefix=("${OPTARG}")
-        ;;
-    j)
-        max_jmeter_servers=("${OPTARG}")
-        ;;
-    c)
-        create_csv_opts=("${OPTARG}")
-        ;;        
-    h)
-        usage
-        exit 0
-        ;;
-    \?)
-        usage
-        exit 1
-        ;;
-    esac
-done
-shift "$((OPTIND - 1))"
+application_name=$1
+metrics_file_prefix=$2
+max_jmeter_servers=$3
+create_csv_opts=$4
 
 gcviewer_jar_path="/home/ubuntu/Resources/gcviewer-1.35.jar"
 results_dir="/home/ubuntu/results"
 
-function exit_handler() {
-    if [[ "$estimate" == false ]] && [[ -d results ]]; then
-        echo "Zipping results directory..."
-        # Create zip file without JTLs first (in case of limited disc space)
-        zip -9qr results-without-jtls.zip results/ -x '*jtls.zip'
-        zip -9qr results.zip results/
-    fi
-}
-
-trap exit_handler EXIT
-
-for n in {1..2}
+for (( n=1; n<=2; n++ ))
 do
-    metrics_file_prefix="$metrics_file_prefix${n}"
     # Create warmup summary CSV
-    $HOME/Perf_dist/jmeter/create-summary-csv.sh ${create_csv_opts} -d $results_dir -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -w -o summary-warmup-apim-${n}.csv
+    $HOME/Perf_dist/jmeter/create-summary-csv.sh ${create_csv_opts} -d $results_dir -n "${application_name}" -p "${metrics_file_prefix}${n}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -w -o summary-warmup-apim-${n}.csv
     mv $HOME/summary-warmup-apim-${n}.csv $results_dir
     # # Create measurement summary CSV
-    $HOME/Perf_dist/jmeter/create-summary-csv.sh ${create_csv_opts} -d $results_dir -n "${application_name}" -p "${metrics_file_prefix}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -o summary-apim-${n}.csv
+    $HOME/Perf_dist/jmeter/create-summary-csv.sh ${create_csv_opts} -d $results_dir -n "${application_name}" -p "${metrics_file_prefix}${n}" -j $max_jmeter_servers -g "${gcviewer_jar_path}" -i -o summary-apim-${n}.csv
     mv $HOME/summary-apim-${n}.csv $results_dir
 done
+
+if [[ -d results ]]; then
+    echo "Zipping results directory..."
+    # Create zip file without JTLs first (in case of limited disc space)
+    zip -9qr results-without-jtls.zip results/ -x '*jtls.zip'
+    zip -9qr results.zip results/
+fi
