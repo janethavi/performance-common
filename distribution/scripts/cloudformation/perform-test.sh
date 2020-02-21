@@ -144,55 +144,19 @@ fi
 $ssh_command_prefix ubuntu@$jmeter_client_ip "$HOME/Perf_dist/reports/report-generation.sh  '${application_name}'  '${metrics_file_prefix}' '${max_jmeter_servers}'"
 echo "Coppying results directory to TESTGRID SLAVE"
 $scp_command_prefix ubuntu@$jmeter_client_ip:/home/ubuntu/results.zip $results_dir
+echo "Coping complete...."
 
-# paste -d, summary-warmup-apim-1.csv summary-warmup-apim-2.csv > summary-warmup.csv
-# paste -d, summary-apim-1.csv summary-apim-2.csv > summary.csv
+echo "Archiving the results...."
+# mkdir -p $output_dir/scenarios
+# output_scenarios_dir=$output_dir/scenarios
+unzip $results_dir/results.zip -d $output_dir
 
-# for apim_node in ${#apim_ips[@]}; do
-#     sudo rm -f summary-warmup-apim-${apim_node}.csv
-#     summary-apim-${apim_node}.csv
-# done
-
-# # Use following to get all column names:
-# echo "Available column names:"
-# while read -r line; do echo "\"$line\""; done < <($script_dir/../jmeter/create-summary-csv.sh ${create_csv_opts} -n "${application_name}" -j $max_jmeter_servers -i -x)
-# echo -ne "\n\n"
-
-# declare -a column_names
-
-# while read column_name; do
-#     column_names+=("$column_name")
-# done < <(get_columns)
-
-# function print_summary() {
-#     cat $1 | cut -d, -f 1-13 | column -t -s,
-# }
-
-# echo -ne "\n\n"
-# echo "Warmup Results:"
-# print_summary summary-warmup.csv
-
-# echo -ne "\n\n"
-# echo "Measurement Results:"
-# print_summary summary.csv
-
-# awk -F, '{ if ($8 > 0)  print }' summary.csv >summary-errors.csv
-
-# if [[ $(wc -l <summary-errors.csv) -gt 1 ]]; then
-#     echo -ne "\n\n"
-#     echo "WARNING: There are errors in measurement results! Please check."
-#     print_summary summary-errors.csv
-# fi
-
-cd $results_dir
-mkdir -p $output_dir/scenarios
-output_scenarios_dir=$output_dir/scenarios
-cp $stack_results_dir/results.zip $output_scenarios_dir
-unzip $stack_results_dir/results.zip -d $output_scenarios_dir
-unzip_dir="$output_scenarios_dir/results"
+# cp $results_dir/results.zip $output_scenarios_dir
+# # unzip $stack_results_dir/results.zip -d $output_dir
+# unzip_dir="$output_scenarios_dir/results"
 
 # Find the jtl zips and unzip them. Test grid finds for jtls inorder to complete the test
-find $unzip_dir -name '*.zip' -exec sh -c 'unzip -d `dirname {}` {}' ';'
-chmod -R 777 $unzip_dir
+find $output_dir -name '*.zip' -exec sh -c 'unzip -d `dirname {}` {}' ';'
+#chmod -R 777 $unzip_dir
 # Create a dummy jtl file
-touch $unzip_dir/dummy.jtl
+#touch $unzip_dir/dummy.jtl
