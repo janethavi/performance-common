@@ -25,7 +25,6 @@ script_dir=$(realpath $script_dir)
 . $script_dir/../common/common.sh
 
 key_file=""
-number_of_product_nodes=2
 
 input_dir=$1
 output_dir=$2
@@ -47,8 +46,8 @@ then
     netty_heap=${propArray[heap_memory_netty]}
     message_size=${propArray[msg_size]}
     concurrent_users=${propArray[con_users]}
-    mysql_host=${propArray[RDSHost]}
-    apim_endpoint=${propArray[GatewayHttpsUrl]}
+    # mysql_host=${propArray[RDSHost]}
+    # apim_endpoint=${propArray[GatewayHttpsUrl]}
     jmeter_client_ip=${propArray[JMeterClient]}
     netty_backend_ip=${propArray[NettyBackend]}
     IFS=','
@@ -63,11 +62,10 @@ then
     while IFS='=' read -r key value; do
         propArray["$key"]="$value"
     done < $testplan_prop_file
-    mysql_username=${propArray[DBUsername]}
-    mysql_password=${propArray[DBPassword]}
+    # mysql_username=${propArray[DBUsername]}
+    # mysql_password=${propArray[DBPassword]}
     region=${propArray[region]}
     num_jmeter_servers=${propArray[NumberOfJMeterServers]}
-    key_file=${propArray[keyFileLocation]}
     IFS=' '
 else
   echo "Error: testplan_prop.properties file not found."
@@ -134,8 +132,8 @@ function run_perf_tests_in_stack() {
 run_perf_tests_in_stack
 # Creating summaries after running the test
 echo "Generating the reports from the results"
-application_name="WSO2 API Manager"
-metrics_file_prefix="apim"
+# application_name="WSO2 API Manager"
+# metrics_file_prefix="apim"
 if [ $num_jmeter_servers -ge 0 ]; then
     max_jmeter_servers=2
 else

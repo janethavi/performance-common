@@ -327,7 +327,14 @@ Parameters:
       - m3.xlarge
       - m3.2xlarge
       - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
       - c5.large
+      - c5.xlarge
+      - c5.2xlarge
     ConstraintDescription: Must be a valid EC2 instance type
   ProductDBType:
     Description: If the selected DB Engine is "SQL Server", please use "db.m4.large" as instance type
@@ -338,12 +345,19 @@ Parameters:
       - db.t2.large
       - db.t2.xlarge
       - db.t2.2xlarge
+      - db.t3.large
+      - db.t3.xlarge
+      - db.t3.2xlarge
       - db.m3.medium
       - db.m3.large
       - db.m3.xlarge
       - db.m3.2xlarge
       - db.m4.large
+      - db.m4.xlarge
+      - db.m4.2xlarge
       - db.m5.large
+      - db.m5.xlarge
+      - db.m5.2xlarge
   JDK:
     Type: String
     Default: "OPEN_JDK8"
