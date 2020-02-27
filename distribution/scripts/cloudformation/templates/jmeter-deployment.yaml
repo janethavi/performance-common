@@ -94,14 +94,10 @@ Resources:
       AvailabilityZone: !Select
         - '0'
         - !GetAZs ''
-  # JMeterPublicInternetGateway:
-  #   Type: 'AWS::EC2::InternetGateway'
   JMeterPublicRouteTable:
     Type: 'AWS::EC2::RouteTable'
     Properties:
       VpcId: !GetAtt [ ProductStack, Outputs.ProductVPCID ]
-    # DependsOn:
-    #   - JMeterVPCInternetGatewayAttachment
   JMeterPublicSubnetRouteTableAssociation:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
@@ -113,12 +109,6 @@ Resources:
       RouteTableId: !Ref JMeterPublicRouteTable
       GatewayId: !GetAtt [ ProductStack, Outputs.ProductInternetGateway ]
       DestinationCidrBlock: 0.0.0.0/0
-    # DependsOn: JMeterVPCInternetGatewayAttachment
-  # JMeterVPCInternetGatewayAttachment:
-  #   Type: 'AWS::EC2::VPCGatewayAttachment'
-  #   Properties:
-  #     InternetGatewayId: !Ref JMeterPublicInternetGateway
-  #     VpcId: !GetAtt [ ProductStack, Outputs.ProductVPCID ]
   JMeterLaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
@@ -144,7 +134,6 @@ Resources:
               #Signal
               /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource JMeterServerAutoScaling --region ${AWS::Region}
     DependsOn:
-      # - JMeterVPCInternetGatewayAttachment
       - InstanceSecurityGroup
   JMeterServerAutoScaling:
     Type: 'AWS::AutoScaling::AutoScalingGroup'
@@ -252,9 +241,6 @@ Resources:
              #Signal
              /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource BackendInstance --region ${AWS::Region}
 Outputs:
-  # JMeterVPC:
-  #   Description: The ID of the VPC
-  #   Value: !Ref JMeterVPC
   JMeterClient:
     Description: JMeter Client Public IP
     Value: !GetAtt JMeterClient.PublicIp
@@ -380,7 +366,6 @@ Parameters:
     Type: String
     Default: t3.small
     AllowedValues:
-      - t3.small
       - t2.medium
       - t2.large
       - t2.xlarge
@@ -390,14 +375,20 @@ Parameters:
       - m3.xlarge
       - m3.2xlarge
       - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c5.large
       - c5.xlarge
+      - c5.2xlarge
     ConstraintDescription: Must be a valid EC2 instance type
   JmeterClientInstanceType:
     Description: JMeter client EC2 instance type
     Type: String
     Default: t3.small
     AllowedValues:
-      - t3.small
       - t2.medium
       - t2.large
       - t2.xlarge
@@ -407,14 +398,20 @@ Parameters:
       - m3.xlarge
       - m3.2xlarge
       - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
       - c5.large
+      - c5.xlarge
+      - c5.2xlarge
     ConstraintDescription: Must be a valid EC2 instance type
   JmeterServerInstanceType:
     Description: JMeter server EC2 instance type
     Type: String
     Default: t3.small
     AllowedValues:
-      - t3.small
       - t2.medium
       - t2.large
       - t2.xlarge
@@ -424,7 +421,14 @@ Parameters:
       - m3.xlarge
       - m3.2xlarge
       - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
       - c5.large
+      - c5.xlarge
+      - c5.2xlarge
     ConstraintDescription: Must be a valid EC2 instance type
   NumberOfJMeterServers:
     Description: The Number of JMeter Servers need(0 or 2)
