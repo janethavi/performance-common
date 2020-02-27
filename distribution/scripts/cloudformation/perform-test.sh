@@ -24,8 +24,6 @@ script_dir=$(dirname "$0")
 script_dir=$(realpath $script_dir)
 . $script_dir/../common/common.sh
 
-key_file=""
-
 input_dir=$1
 output_dir=$2
 deployment_prop_file=$input_dir/"deployment.properties"
@@ -46,8 +44,6 @@ then
     netty_heap=${propArray[heap_memory_netty]}
     message_size=${propArray[msg_size]}
     concurrent_users=${propArray[con_users]}
-    # mysql_host=${propArray[RDSHost]}
-    # apim_endpoint=${propArray[GatewayHttpsUrl]}
     jmeter_client_ip=${propArray[JMeterClient]}
     netty_backend_ip=${propArray[NettyBackend]}
     IFS=','
@@ -62,8 +58,6 @@ then
     while IFS='=' read -r key value; do
         propArray["$key"]="$value"
     done < $testplan_prop_file
-    # mysql_username=${propArray[DBUsername]}
-    # mysql_password=${propArray[DBPassword]}
     region=${propArray[region]}
     num_jmeter_servers=${propArray[NumberOfJMeterServers]}
     IFS=' '
@@ -75,12 +69,12 @@ virtualenv .venv
 source .venv/bin/activate
 pip3 install -r $script_dir/python-requirements.txt
 
-results_dir="Results-$(date +%Y%m%d%H%M%S)"
 aws s3 cp s3://performance-test-archives/janeth-key.pem $script_dir/janeth-key.pem
 key_file=$script_dir/janeth-key.pem
 key_file=$(realpath $key_file)
 sudo chmod 400 $key_file
 
+results_dir="Results-$(date +%Y%m%d%H%M%S)"
 mkdir $results_dir
 scp_command_prefix="scp -i $key_file -o "StrictHostKeyChecking=no""
 ssh_command_prefix="ssh -i $key_file -o "StrictHostKeyChecking=no""
@@ -132,29 +126,19 @@ function run_perf_tests_in_stack() {
 run_perf_tests_in_stack
 # Creating summaries after running the test
 echo "Generating the reports from the results"
-# application_name="WSO2 API Manager"
-# metrics_file_prefix="apim"
 if [ $num_jmeter_servers -ge 0 ]; then
-    max_jmeter_servers=2
+    max_jmeter_servers=$num_jmeter_servers
 else
+    # Default number of JMeters
     max_jmeter_servers=1
 fi
+
 $ssh_command_prefix ubuntu@$jmeter_client_ip "$HOME/Perf_dist/reports/report-generation.sh  '${application_name}'  '${metrics_file_prefix}' '${max_jmeter_servers}'"
 echo "Coppying results directory to TESTGRID SLAVE"
 $scp_command_prefix ubuntu@$jmeter_client_ip:/home/ubuntu/results.zip $results_dir
 echo "Coping complete...."
 
 echo "Archiving the results...."
-# mkdir -p $output_dir/scenarios
-# output_scenarios_dir=$output_dir/scenarios
 unzip $results_dir/results.zip -d $output_dir
 
-# cp $results_dir/results.zip $output_scenarios_dir
-# # unzip $stack_results_dir/results.zip -d $output_dir
-# unzip_dir="$output_scenarios_dir/results"
-
-# Find the jtl zips and unzip them. Test grid finds for jtls inorder to complete the test
-find $output_dir -name '*.zip' -exec sh -c 'unzip -d `dirname {}` {}' ';'
-#chmod -R 777 $unzip_dir
-# Create a dummy jtl file
-#touch $unzip_dir/dummy.jtl
+echo "Performance test is complete. Please find the results from the dashboard"
